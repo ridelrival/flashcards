@@ -37,8 +37,16 @@
         }
 
         .app-container { width: 100%; max-width: 500px; position: relative; }
-        .view { display: none; padding-bottom: 90px; width: 100%; }
+.view { display: none; padding-bottom: 90px; width: 100%; }
         .view.active { display: block; }
+        
+        /* ADD THIS NEW RULE: Centers the entire study screen vertically */
+        #studyView.active { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            min-height: 85vh; 
+        }
         
         h1 { font-size: 28px; margin-bottom: 20px; text-align: center; }
         h2 { font-size: 20px; margin-bottom: 15px; text-align: center;}
