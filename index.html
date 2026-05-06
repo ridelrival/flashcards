@@ -880,36 +880,64 @@
         }
 
         function importFromCSV(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
-                for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                    if (!cols || cols.length < 7) continue;
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Menggunakan \r?\n agar mendukung format file dari Windows maupun Mac
+        const rows = e.target.result.split(/\r?\n/).filter(row => row.trim() !== '');
+        
+        for (let i = 1; i < rows.length; i++) {
+            // Pemisah koma yang aman: mengabaikan koma di dalam tanda kutip ganda
+            // dan tetap mempertahankan kolom yang kosong (seperti ,,)
+            const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            
+            // Pengecekan tetap 7 karena format kita punya 7 kolom utama
+            if (!cols || cols.length < 7) continue;
 
-                    const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-                    const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
-                    const front = clean(cols[2]); const furigana = clean(cols[3]);
-                    const reading = clean(cols[4]); 
-                    const meaningEn = clean(cols[5]); const meaningId = clean(cols[6]);
+            // Membersihkan tanda kutip dan spasi berlebih
+            const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+            
+            const secName = clean(cols[0]) || "Imported"; 
+            const deckName = clean(cols[1]) || "Imported Deck";
+            const front = clean(cols[2]); 
+            const furigana = clean(cols[3]);
+            const reading = clean(cols[4]); 
+            const meaningEn = clean(cols[5]); 
+            const meaningId = clean(cols[6]);
 
-                    if (!front || (!meaningEn && !meaningId)) continue;
+            // Jika kata utama (front) kosong, atau kedua arti kosong, lewati
+            if (!front || (!meaningEn && !meaningId)) continue;
 
-                    let targetSec = sections.find(s => s.name === secName);
-                    if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
+            // Masukkan ke database lokal
+            let targetSec = sections.find(s => s.name === secName);
+            if (!targetSec) { 
+                targetSec = { id: 's_' + Date.now() + Math.random(), name: secName }; 
+                sections.push(targetSec); 
+            }
 
-                    let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
-                    if (!targetDeck) { targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; decks.push(targetDeck); cards[targetDeck.id] = []; }
+            let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
+            if (!targetDeck) { 
+                targetDeck = { id: 'd_' + Date.now() + Math.random(), sectionId: targetSec.id, name: deckName }; 
+                decks.push(targetDeck); 
+                cards[targetDeck.id] = []; 
+            }
 
-                    cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
-                }
-                saveData(); renderHome(); alert("Import complete!"); event.target.value = ''; closeModal('settingsModal');
-            };
-            reader.readAsText(file);
+            cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
         }
-
+        
+        saveData(); 
+        renderHome(); 
+        alert("Import complete! 🎉"); 
+        
+        // Reset input agar bisa mengimpor file yang sama lagi jika diperlukan
+        event.target.value = ''; 
+        closeModal('settingsModal', event);
+    };
+    reader.readAsText(file);
+}
+        
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
         renderHome();
     </script>
