@@ -343,19 +343,13 @@
                 <div class="card-face card-back">
                     <div class="card-label">WORD</div>
                     <div class="back-kanji-text" id="studyBackWord">Word</div>
-                    
                     <div class="card-divider"></div>
-                    
                     <div class="card-label">READING</div>
                     <div class="reading-text" id="studyReading">Reading</div>
-                    
                     <div class="card-divider"></div>
-                    
                     <div class="card-label">MEANING</div>
-                    
                     <div class="lang-label">en</div>
                     <div class="meaning-text" id="studyMeaningEn">Meaning EN</div>
-                    
                     <div class="lang-label">id</div>
                     <div class="meaning-text" id="studyMeaningId" style="margin-bottom: 0;">Meaning ID</div>
                 </div>
@@ -390,7 +384,6 @@
         <div class="results-box">
             <div class="results-icon">🎉</div>
             <h2 id="resultsDeckName">Deck Name</h2>
-            
             <div class="results-stats">
                 <div class="stat-box">
                     <div class="stat-number" style="color: var(--danger);" id="resultSkipped">0</div>
@@ -443,17 +436,26 @@
 </div>
 
     <script>
-        // ==========================================
-        // PERFECTO DATA INITIALIZATION (BULLETPROOF)
-        // ==========================================
+        // =========================================================================
+        // 1. PERFECTO INITIALIZATION (100% DIKEMBALIKAN KE VERSI PALING STABIL)
+        // =========================================================================
         let sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
         let decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
         let cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
         
-        // NEW SUB-DECK DATA STRUCTURES
+        // PENGAMANAN EKSTRA: Memastikan data berbentuk Array/Objek yang benar
+        if (!Array.isArray(sections)) sections = [];
+        if (!Array.isArray(decks)) decks = [];
+        if (typeof cards !== 'object' || Array.isArray(cards)) cards = {};
+
+        // Inisialisasi Sub Deck
         let skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {};
         let gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {};
+        
+        if (typeof skippedCards !== 'object' || Array.isArray(skippedCards)) skippedCards = {};
+        if (typeof gotItCards !== 'object' || Array.isArray(gotItCards)) gotItCards = {};
 
+        // Variabel Navigasi & State
         let currentSectionId = null;
         let currentDeckId = null;
         let currentStudyCategory = 'main'; 
@@ -474,11 +476,10 @@
         let activeActionId = null;
         let activeActionType = null;
         
-        // Multi-select state
         let isSelectMode = false;
         let selectedCards = new Set();
 
-        // --- TRUE RANDOM SHUFFLE ALGORITHM ---
+        // --- FUNGSI ACAK ---
         function shuffleArray(array) {
             let currentIndex = array.length, randomIndex;
             while (currentIndex !== 0) {
@@ -489,7 +490,7 @@
             return array;
         }
 
-        // --- HELPER TO PREVENT DUPLICATES IN SUB-DECKS ---
+        // --- PENCEGAH DUPLIKASI ---
         function isCardEqual(c1, c2) {
             return c1.front === c2.front && c1.reading === c2.reading && c1.meaningEn === c2.meaningEn && c1.meaningId === c2.meaningId;
         }
@@ -497,6 +498,9 @@
             return arr.some(c => isCardEqual(c, card));
         }
 
+        // =========================================================================
+        // 2. LOGIKA NAVIGASI & UI
+        // =========================================================================
         function navigateTo(viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
@@ -511,7 +515,7 @@
         function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
         function closeModal(modalId, e) { if(e) e.stopPropagation(); document.getElementById(modalId).style.display = 'none'; }
 
-        // --- LONG PRESS LOGIC (0.5 Seconds) ---
+        // --- LONG PRESS LOGIC (0.5 Detik) ---
         function handleStartPress(id, type) {
             isLongPress = false;
             pressTimer = setTimeout(() => {
@@ -531,10 +535,7 @@
             if (type === 'tab') switchDeckTab(id);
             
             if (type === 'card') {
-                if (isSelectMode) {
-                    toggleCardSelection(id); 
-                }
-                // Jika tidak di Select Mode, tap biasa dibiarkan mati agar aman dari ketidaksengajaan.
+                if (isSelectMode) toggleCardSelection(id); 
             }
         }
 
@@ -564,7 +565,7 @@
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        // --- BULK SELECT & MULTI DELETE ---
+        // --- FUNGSI MULTI-SELECT & RESET SUB DECK ---
         window.triggerSelectMode = function() {
             closeModal('actionModal');
             enterSelectMode(activeActionId);
@@ -605,13 +606,12 @@
         function deleteSelectedCards() {
             if (selectedCards.size === 0) return;
             if (confirm(`⚠️ Delete ${selectedCards.size} selected cards?`)) {
-                if (currentStudyCategory === 'main') {
-                    cards[currentDeckId] = cards[currentDeckId].filter((_, i) => !selectedCards.has(i));
-                } else if (currentStudyCategory === 'skipped') {
-                    skippedCards[currentDeckId] = skippedCards[currentDeckId].filter((_, i) => !selectedCards.has(i));
-                } else if (currentStudyCategory === 'gotIt') {
-                    gotItCards[currentDeckId] = gotItCards[currentDeckId].filter((_, i) => !selectedCards.has(i));
-                }
+                let targetArr = cards;
+                if (currentStudyCategory === 'skipped') targetArr = skippedCards;
+                if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
+
+                targetArr[currentDeckId] = targetArr[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                
                 saveData();
                 exitSelectMode();
             }
@@ -628,7 +628,7 @@
             }
         }
 
-        // --- SINGLE EDIT & DELETE LOGIC ---
+        // --- FUNGSI EDIT / DELETE BIASA ---
         function triggerEdit() {
             closeModal('actionModal');
             if(activeActionType === 'section') {
@@ -685,20 +685,19 @@
                 }
             } else if (activeActionType === 'card') {
                 if (confirm("⚠️ Delete this card?")) {
-                    // SECURE EXPLICIT DELETE FOR SINGLE CARD
-                    if (currentStudyCategory === 'main') {
-                        cards[currentDeckId].splice(activeActionId, 1);
-                    } else if (currentStudyCategory === 'skipped') {
-                        skippedCards[currentDeckId].splice(activeActionId, 1);
-                    } else if (currentStudyCategory === 'gotIt') {
-                        gotItCards[currentDeckId].splice(activeActionId, 1);
-                    }
-                    saveData(); 
-                    renderDeck();
+                    let targetArr = cards;
+                    if (currentStudyCategory === 'skipped') targetArr = skippedCards;
+                    if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
+                    
+                    targetArr[currentDeckId].splice(activeActionId, 1);
+                    saveData(); renderDeck();
                 }
             }
         }
 
+        // =========================================================================
+        // 3. RENDER TAMPILAN
+        // =========================================================================
         function showCreateSection() { document.getElementById('createSectionArea').style.display = 'block'; document.getElementById('newSectionName').focus(); }
         function hideCreateSection() { document.getElementById('createSectionArea').style.display = 'none'; document.getElementById('newSectionName').value = ''; }
         
@@ -865,12 +864,14 @@
             });
         }
 
+        // =========================================================================
+        // 4. LOGIKA KARTU (ADD / PREVIEW / STUDY)
+        // =========================================================================
         function generateRubyHTML(word, furiganaStr) {
             if (!furiganaStr) return word;
             const furiganaParts = furiganaStr.trim().split(/\s+/);
             let html = "";
             let fIndex = 0;
-            
             for (let i = 0; i < word.length; i++) {
                 const char = word[i];
                 if (char.match(/[\u4e00-\u9faf\u3400-\u4dbf]/)) {
@@ -887,10 +888,8 @@
         function navigateToAddCard() {
             editingCardIndex = null;
             currentStudyCategory = 'main'; 
-            
             document.getElementById('addCardTitle').innerText = "Add Card";
             document.getElementById('btnSaveAnother').style.display = 'block'; 
-            
             document.getElementById('cardFront').value = '';
             document.getElementById('cardFurigana').value = '';
             document.getElementById('cardReading').value = '';
@@ -909,7 +908,6 @@
             
             document.getElementById('previewWord').classList.add('show-furigana');
             document.getElementById('previewWord').innerHTML = generateRubyHTML(front, furigana);
-            
             document.getElementById('previewReading').innerText = reading;
             document.getElementById('previewMeaningEn').innerText = meaningEn;
             document.getElementById('previewMeaningId').innerText = meaningId;
@@ -938,11 +936,8 @@
             
             saveData();
             
-            if (addAnother) {
-                navigateToAddCard(); 
-            } else {
-                navigateTo('deckView');
-            }
+            if (addAnother) { navigateToAddCard(); } 
+            else { navigateTo('deckView'); }
         }
 
         // --- STUDY SECTION (ALL MAIN DECKS) ---
@@ -962,17 +957,12 @@
             if (originalStudyOrder.length === 0) return alert("Add some cards to this section first!");
             
             studyCards = [...originalStudyOrder];
-            isShuffled = initShuffle;
-            studyGotIt = 0;
-            studySkipped = 0;
-            
+            isShuffled = initShuffle; studyGotIt = 0; studySkipped = 0;
             if (isShuffled) studyCards = shuffleArray(studyCards);
-            document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
+            document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             document.getElementById('btnRemoveSub').style.display = 'none';
-
-            showFurigana = false;
-            document.getElementById('furiganaToggle').className = 'tool-icon';
+            showFurigana = false; document.getElementById('furiganaToggle').className = 'tool-icon';
             document.getElementById('studyCard').classList.remove('show-furigana');
 
             currentStudyIndex = 0;
@@ -992,21 +982,15 @@
             if (originalStudyOrder.length === 0) return alert(`No cards in ${currentStudyCategory}!`);
             
             studyCards = [...originalStudyOrder];
-            isShuffled = initShuffle;
-            studyGotIt = 0;
-            studySkipped = 0;
-            
+            isShuffled = initShuffle; studyGotIt = 0; studySkipped = 0;
             if (isShuffled) studyCards = shuffleArray(studyCards);
+            
             document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
-            if (currentStudyCategory === 'main') {
-                document.getElementById('btnRemoveSub').style.display = 'none';
-            } else {
-                document.getElementById('btnRemoveSub').style.display = 'block';
-            }
+            if (currentStudyCategory === 'main') document.getElementById('btnRemoveSub').style.display = 'none';
+            else document.getElementById('btnRemoveSub').style.display = 'block';
 
-            showFurigana = false;
-            document.getElementById('furiganaToggle').className = 'tool-icon';
+            showFurigana = false; document.getElementById('furiganaToggle').className = 'tool-icon';
             document.getElementById('studyCard').classList.remove('show-furigana');
 
             currentStudyIndex = 0;
@@ -1017,14 +1001,10 @@
         window.toggleShuffle = function() {
             isShuffled = !isShuffled;
             document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
-            
             const currentCard = studyCards[currentStudyIndex];
             
-            if (isShuffled) {
-                studyCards = shuffleArray([...originalStudyOrder]);
-            } else {
-                studyCards = [...originalStudyOrder];
-            }
+            if (isShuffled) studyCards = shuffleArray([...originalStudyOrder]);
+            else studyCards = [...originalStudyOrder];
             
             currentStudyIndex = studyCards.findIndex(c => c === currentCard);
             document.getElementById('studyProgress').innerText = `Card ${currentStudyIndex + 1} of ${studyCards.length}`;
@@ -1040,15 +1020,12 @@
         function loadStudyCard() {
             document.getElementById('studyCard').classList.remove('is-flipped');
             const card = studyCards[currentStudyIndex];
-            
             document.getElementById('studyProgress').innerText = `Card ${currentStudyIndex + 1} of ${studyCards.length}`;
             
             const rubyHTML = generateRubyHTML(card.front, card.furigana);
             document.getElementById('studyFront').innerHTML = rubyHTML;
             document.getElementById('studyBackWord').innerHTML = rubyHTML;
-            
             document.getElementById('studyReading').innerText = card.reading || "";
-            
             document.getElementById('studyMeaningEn').innerText = card.meaningEn || card.meaning || '-';
             document.getElementById('studyMeaningId').innerText = card.meaningId || '-';
         }
@@ -1065,14 +1042,10 @@
 
                 if (result === 'skip') {
                     if (!skippedCards[targetDeckId]) skippedCards[targetDeckId] = [];
-                    if (!isCardInArray(cleanCard, skippedCards[targetDeckId])) {
-                        skippedCards[targetDeckId].push(cleanCard);
-                    }
+                    if (!isCardInArray(cleanCard, skippedCards[targetDeckId])) skippedCards[targetDeckId].push(cleanCard);
                 } else if (result === 'done') {
                     if (!gotItCards[targetDeckId]) gotItCards[targetDeckId] = [];
-                    if (!isCardInArray(cleanCard, gotItCards[targetDeckId])) {
-                        gotItCards[targetDeckId].push(cleanCard);
-                    }
+                    if (!isCardInArray(cleanCard, gotItCards[targetDeckId])) gotItCards[targetDeckId].push(cleanCard);
                 }
                 saveData();
             }
@@ -1083,40 +1056,30 @@
 
             setTimeout(() => {
                 currentStudyIndex++;
-                if (currentStudyIndex >= studyCards.length) {
-                    showResults();
-                } else {
-                    loadStudyCard();
-                }
+                if (currentStudyIndex >= studyCards.length) showResults();
+                else loadStudyCard();
             }, 300);
         }
 
         window.removeAndMoveToGotIt = function() {
             const currentCard = studyCards[currentStudyIndex];
-            
             if (!gotItCards[currentDeckId]) gotItCards[currentDeckId] = [];
 
             if (currentStudyCategory === 'skipped') {
                 skippedCards[currentDeckId] = skippedCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
-                if (!isCardInArray(currentCard, gotItCards[currentDeckId])) {
-                    gotItCards[currentDeckId].push({...currentCard});
-                }
+                if (!isCardInArray(currentCard, gotItCards[currentDeckId])) gotItCards[currentDeckId].push({...currentCard});
             } else if (currentStudyCategory === 'gotIt') {
                 gotItCards[currentDeckId] = gotItCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
             }
 
             saveData();
-            
             document.getElementById('studyCard').classList.remove('is-flipped');
             studyGotIt++; 
 
             setTimeout(() => {
                 currentStudyIndex++;
-                if (currentStudyIndex >= studyCards.length) {
-                    showResults();
-                } else {
-                    loadStudyCard();
-                }
+                if (currentStudyIndex >= studyCards.length) showResults();
+                else loadStudyCard();
             }, 300);
         }
 
@@ -1146,17 +1109,15 @@
             localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
         }
 
-        // ==========================================
-        // ISOLATED CSV EXPORT / IMPORT (MAIN DECK ONLY)
-        // 100% PERFECTO COMPATIBLE
-        // ==========================================
+        // =========================================================================
+        // 5. IMPORT/EXPORT CSV (TERISOLASI 100% HANYA UNTUK MAIN DECK)
+        // =========================================================================
         function exportToCSV() {
             let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID\n";
             const escapeCSV = (text) => `"${(text || '').replace(/"/g, '""')}"`;
 
             sections.forEach(sec => {
                 decks.filter(d => d.sectionId === sec.id).forEach(deck => {
-                    // EXPORT ONLY FROM MAIN DECK
                     (cards[deck.id] || []).forEach(c => {
                         const en = c.meaningEn || c.meaning || '';
                         const id = c.meaningId || '';
@@ -1220,6 +1181,7 @@
                             meaningId = clean(cols[6]);
                         }
 
+                        // Proteksi agar header tidak masuk jadi kartu
                         if (!front || front.toLowerCase() === 'front' || secName.toLowerCase() === 'section') continue; 
 
                         let targetSec = sections.find(s => s.name === secName);
@@ -1235,14 +1197,13 @@
                         if (!skippedCards[targetDeck.id]) skippedCards[targetDeck.id] = [];
                         if (!gotItCards[targetDeck.id]) gotItCards[targetDeck.id] = [];
 
-                        // IMPORT EXCLUSIVELY TO MAIN DECK
                         cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
                     }
                     saveData(); 
                     renderHome(); 
                     if(currentSectionId) renderSection();
                     if(currentDeckId) renderDeck();
-                    alert("Import file CSV selesai! (Data dimasukkan ke Main Deck)"); 
+                    alert("Import file CSV selesai! (Data dimasukkan murni ke Main Deck)"); 
                 } catch(error) {
                     alert("Error saat membaca file: " + error.message);
                 }
@@ -1252,6 +1213,9 @@
             reader.readAsText(file);
         }
 
+        // =========================================================================
+        // INITIALIZE APP
+        // =========================================================================
         renderHome();
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
     </script>
