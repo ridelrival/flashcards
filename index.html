@@ -183,7 +183,6 @@
         <p class="hint-text">Press and hold a section for 0.5s to edit or delete</p>
         <ul class="deck-list" id="sectionList"></ul>
         <button class="fab" onclick="showCreateSection()">+</button>
-        <!-- Settings button now on Home Page too -->
         <button class="fab fab-secondary" onclick="openSettings()">⚙️</button>
     </div>
 
@@ -556,7 +555,6 @@
                 if (isSelectMode) {
                     toggleCardSelection(id); 
                 }
-                // Jika tidak di Select Mode, tap tidak melakukan apapun (Aman dari ketidaksengajaan)
             }
         }
 
@@ -1198,62 +1196,39 @@
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                try {
-                    const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
-                    for (let i = 1; i < rows.length; i++) {
-                        const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                        if (!cols || cols.length < 5) continue; 
+                const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
+                for (let i = 1; i < rows.length; i++) {
+                    const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    if (!cols || cols.length < 7) continue;
 
-                        const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-                        const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
-                        const front = clean(cols[2]); const furigana = clean(cols[3]);
-                        const reading = clean(cols[4]); 
-                        
-                        let meaningEn = '';
-                        let meaningId = '';
-                        let category = 'main';
+                    const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+                    const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
+                    const front = clean(cols[2]); const furigana = clean(cols[3]);
+                    const reading = clean(cols[4]); 
+                    const meaningEn = clean(cols[5]); const meaningId = clean(cols[6]);
+                    const category = cols.length >= 8 ? clean(cols[7]) : 'main';
 
-                        if (cols.length === 6) {
-                            meaningEn = clean(cols[5]);
-                        } else if (cols.length >= 7) {
-                            meaningEn = clean(cols[5]);
-                            meaningId = clean(cols[6]);
-                        }
-                        if (cols.length >= 8) {
-                            category = clean(cols[7]);
-                        }
+                    if (!front || (!meaningEn && !meaningId)) continue;
 
-                        if (!front) continue;
+                    let targetSec = sections.find(s => s.name === secName);
+                    if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
 
-                        let targetSec = sections.find(s => s.name === secName);
-                        if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
-
-                        let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
-                        if (!targetDeck) { 
-                            targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
-                            decks.push(targetDeck); 
-                        }
-
-                        if (!cards[targetDeck.id]) cards[targetDeck.id] = [];
-                        if (!skippedCards[targetDeck.id]) skippedCards[targetDeck.id] = [];
-                        if (!gotItCards[targetDeck.id]) gotItCards[targetDeck.id] = [];
-
-                        let targetArr = cards;
-                        if (category === 'skipped') targetArr = skippedCards;
-                        if (category === 'gotIt') targetArr = gotItCards;
-
-                        targetArr[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
+                    let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
+                    if (!targetDeck) { 
+                        targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
+                        decks.push(targetDeck); 
+                        cards[targetDeck.id] = []; 
+                        skippedCards[targetDeck.id] = [];
+                        gotItCards[targetDeck.id] = [];
                     }
-                    saveData(); 
-                    renderHome(); 
-                    if(currentSectionId) renderSection();
-                    if(currentDeckId) renderDeck();
-                    alert("Import complete!"); 
-                } catch(error) {
-                    alert("Error parsing CSV: " + error.message);
+
+                    let targetArr = cards;
+                    if (category === 'skipped') targetArr = skippedCards;
+                    if (category === 'gotIt') targetArr = gotItCards;
+
+                    targetArr[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
                 }
-                event.target.value = ''; 
-                closeModal('settingsModal');
+                saveData(); renderHome(); alert("Import complete!"); event.target.value = ''; closeModal('settingsModal');
             };
             reader.readAsText(file);
         }
