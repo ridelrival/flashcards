@@ -437,31 +437,13 @@
 
     <script>
         // =========================================================================
-        // 1. SISTEM PEMBACA MEMORI ANTI-BADAI (SAFE LOAD)
+        // 1. DATA INITIALIZATION - VARIABEL KOSONG SAJA DI AWAL
         // =========================================================================
-        function safeLoad(key, fallback) {
-            try {
-                let data = localStorage.getItem(key);
-                if (data === null || data === undefined || data === 'undefined' || data === '') {
-                    return fallback;
-                }
-                let parsed = JSON.parse(data);
-                // Cek tipe data agar tidak tertukar antara array dan object
-                if (Array.isArray(fallback) && !Array.isArray(parsed)) return fallback;
-                if (!Array.isArray(fallback) && (typeof parsed !== 'object' || Array.isArray(parsed))) return fallback;
-                return parsed;
-            } catch (e) {
-                console.error("Error membaca " + key, e);
-                return fallback; // Jika error/korup, pakai data kosong agar tidak nge-blank
-            }
-        }
-
-        let sections = safeLoad('flashcard_sections', []);
-        let decks = safeLoad('flashcard_decks', []);
-        let cards = safeLoad('flashcard_cards', {});
-        
-        let skippedCards = safeLoad('flashcard_skipped', {});
-        let gotItCards = safeLoad('flashcard_gotit', {});
+        let sections = [];
+        let decks = [];
+        let cards = {};
+        let skippedCards = {};
+        let gotItCards = {};
 
         // Variabel Navigasi & State
         let currentSectionId = null;
@@ -487,7 +469,43 @@
         let isSelectMode = false;
         let selectedCards = new Set();
 
-        // --- FUNGSI ACAK ---
+        // =========================================================================
+        // 2. LOAD & SAVE SYSTEM (Sesuai Logika yang Diminta)
+        // =========================================================================
+        function loadData() {
+            const savedSections = localStorage.getItem('flashcard_sections');
+            if (savedSections) sections = JSON.parse(savedSections);
+            
+            const savedDecks = localStorage.getItem('flashcard_decks');
+            if (savedDecks) decks = JSON.parse(savedDecks);
+            
+            const savedCards = localStorage.getItem('flashcard_cards');
+            if (savedCards) cards = JSON.parse(savedCards);
+            
+            const savedSkipped = localStorage.getItem('flashcard_skipped');
+            if (savedSkipped) skippedCards = JSON.parse(savedSkipped);
+            
+            const savedGotIt = localStorage.getItem('flashcard_gotit');
+            if (savedGotIt) gotItCards = JSON.parse(savedGotIt);
+        }
+
+        function saveData() {
+            localStorage.setItem('flashcard_sections', JSON.stringify(sections));
+            localStorage.setItem('flashcard_decks', JSON.stringify(decks));
+            localStorage.setItem('flashcard_cards', JSON.stringify(cards));
+            localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
+            localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
+        }
+
+        // =========================================================================
+        // 3. EVENT LISTENER SAAT HALAMAN DIBUKA AWAL
+        // =========================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData(); // Load semua data dari memori (HANYA DILAKUKAN SAAT DOM SIAP)
+            renderHome(); // Gambar layar awal
+        });
+
+        // --- TRUE RANDOM SHUFFLE ALGORITHM ---
         function shuffleArray(array) {
             let currentIndex = array.length, randomIndex;
             while (currentIndex !== 0) {
@@ -498,7 +516,7 @@
             return array;
         }
 
-        // --- PENCEGAH DUPLIKASI ---
+        // --- HELPER TO PREVENT DUPLICATES ---
         function isCardEqual(c1, c2) {
             return c1.front === c2.front && c1.reading === c2.reading && c1.meaningEn === c2.meaningEn && c1.meaningId === c2.meaningId;
         }
@@ -506,9 +524,6 @@
             return arr.some(c => isCardEqual(c, card));
         }
 
-        // =========================================================================
-        // 2. LOGIKA NAVIGASI & UI
-        // =========================================================================
         function navigateTo(viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
@@ -708,7 +723,7 @@
         }
 
         // =========================================================================
-        // 3. RENDER TAMPILAN
+        // 4. LOGIKA RENDER UI 
         // =========================================================================
         function showCreateSection() { document.getElementById('createSectionArea').style.display = 'block'; document.getElementById('newSectionName').focus(); }
         function hideCreateSection() { document.getElementById('createSectionArea').style.display = 'none'; document.getElementById('newSectionName').value = ''; }
@@ -877,7 +892,7 @@
         }
 
         // =========================================================================
-        // 4. LOGIKA KARTU (ADD / PREVIEW / STUDY)
+        // 5. LOGIKA KARTU (ADD / PREVIEW / STUDY)
         // =========================================================================
         function generateRubyHTML(word, furiganaStr) {
             if (!furiganaStr) return word;
@@ -1059,7 +1074,7 @@
                     if (!gotItCards[targetDeckId]) gotItCards[targetDeckId] = [];
                     if (!isCardInArray(cleanCard, gotItCards[targetDeckId])) gotItCards[targetDeckId].push(cleanCard);
                 }
-                saveData();
+                saveData(); // PASTI TERSIMPAN SETIAP KALI BELAJAR KARTU
             }
 
             document.getElementById('studyCard').classList.remove('is-flipped');
@@ -1113,16 +1128,8 @@
 
         function endStudy() { navigateTo(returnViewId); }
 
-        function saveData() {
-            localStorage.setItem('flashcard_sections', JSON.stringify(sections));
-            localStorage.setItem('flashcard_decks', JSON.stringify(decks));
-            localStorage.setItem('flashcard_cards', JSON.stringify(cards));
-            localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
-            localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
-        }
-
         // =========================================================================
-        // 5. IMPORT/EXPORT CSV (TERISOLASI 100% HANYA UNTUK MAIN DECK)
+        // 6. IMPORT/EXPORT CSV (TERISOLASI HANYA UNTUK MAIN DECK)
         // =========================================================================
         function exportToCSV() {
             let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID\n";
@@ -1225,13 +1232,7 @@
             reader.readAsText(file);
         }
 
-        // =========================================================================
-        // JALANKAN APLIKASI SAAT LAYAR SIAP (MENCEGAH BLANK)
-        // =========================================================================
-        document.addEventListener('DOMContentLoaded', () => {
-            renderHome();
-        });
-
+        // INIT PWA
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
     </script>
 </body>
