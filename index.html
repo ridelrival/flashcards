@@ -168,7 +168,7 @@
     <div id="homeView" class="view active">
         <div class="header">
             <p style="color: var(--text-muted); font-weight: 500;">Learn with</p>
-            <h1>Flash Cards</h1>
+            <h1>Flashcards</h1>
         </div>
         
         <div id="createSectionArea" style="display: none; margin-bottom: 20px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
@@ -437,15 +437,30 @@
 
     <script>
         // =========================================================================
-        // 1. DATA INITIALIZATION - VARIABEL KOSONG SAJA DI AWAL
+        // 1. SAFE LOAD SYSTEM 
         // =========================================================================
-        let sections = [];
-        let decks = [];
-        let cards = {};
-        let skippedCards = {};
-        let gotItCards = {};
+        function safeParse(key, fallback) {
+            try {
+                const data = localStorage.getItem(key);
+                if (!data || data === 'undefined' || data === 'null') return fallback;
+                const parsed = JSON.parse(data);
+                // Sanity check to ensure we didn't parse an object when we expected an array (or vice versa)
+                if (Array.isArray(fallback) && !Array.isArray(parsed)) return fallback;
+                if (!Array.isArray(fallback) && (typeof parsed !== 'object' || Array.isArray(parsed))) return fallback;
+                return parsed;
+            } catch (e) {
+                console.error(`Corrupt JSON in ${key}, resetting to fallback:`, e);
+                return fallback;
+            }
+        }
 
-        // Variabel Navigasi & State
+        let sections = safeParse('flashcard_sections', []);
+        let decks = safeParse('flashcard_decks', []);
+        let cards = safeParse('flashcard_cards', {});
+        let skippedCards = safeParse('flashcard_skipped', {});
+        let gotItCards = safeParse('flashcard_gotit', {});
+
+        // State Variables
         let currentSectionId = null;
         let currentDeckId = null;
         let currentStudyCategory = 'main'; 
@@ -470,39 +485,25 @@
         let selectedCards = new Set();
 
         // =========================================================================
-        // 2. LOAD & SAVE SYSTEM (Sesuai Logika yang Diminta)
+        // 2. CENTRALIZED PERSISTENCE 
         // =========================================================================
-        function loadData() {
-            const savedSections = localStorage.getItem('flashcard_sections');
-            if (savedSections) sections = JSON.parse(savedSections);
-            
-            const savedDecks = localStorage.getItem('flashcard_decks');
-            if (savedDecks) decks = JSON.parse(savedDecks);
-            
-            const savedCards = localStorage.getItem('flashcard_cards');
-            if (savedCards) cards = JSON.parse(savedCards);
-            
-            const savedSkipped = localStorage.getItem('flashcard_skipped');
-            if (savedSkipped) skippedCards = JSON.parse(savedSkipped);
-            
-            const savedGotIt = localStorage.getItem('flashcard_gotit');
-            if (savedGotIt) gotItCards = JSON.parse(savedGotIt);
-        }
-
-        function saveData() {
-            localStorage.setItem('flashcard_sections', JSON.stringify(sections));
-            localStorage.setItem('flashcard_decks', JSON.stringify(decks));
-            localStorage.setItem('flashcard_cards', JSON.stringify(cards));
-            localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
-            localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
+        function saveState() {
+            try {
+                localStorage.setItem('flashcard_sections', JSON.stringify(sections));
+                localStorage.setItem('flashcard_decks', JSON.stringify(decks));
+                localStorage.setItem('flashcard_cards', JSON.stringify(cards));
+                localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
+                localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
+            } catch (e) {
+                console.error("Storage quota exceeded or storage blocked.", e);
+            }
         }
 
         // =========================================================================
-        // 3. EVENT LISTENER SAAT HALAMAN DIBUKA AWAL
+        // 3. UI INITIALIZATION
         // =========================================================================
         document.addEventListener('DOMContentLoaded', () => {
-            loadData(); // Load semua data dari memori (HANYA DILAKUKAN SAAT DOM SIAP)
-            renderHome(); // Gambar layar awal
+            renderHome();
         });
 
         // --- TRUE RANDOM SHUFFLE ALGORITHM ---
@@ -636,7 +637,7 @@
                 } else if (currentStudyCategory === 'gotIt') {
                     gotItCards[currentDeckId] = gotItCards[currentDeckId].filter((_, i) => !selectedCards.has(i));
                 }
-                saveData();
+                saveState();
                 exitSelectMode();
             }
         }
@@ -647,7 +648,7 @@
             if (confirm(`⚠️ Are you sure you want to empty the ${deckName} sub deck? All cards inside will be deleted.`)) {
                 if (activeActionId === 'skipped') skippedCards[currentDeckId] = [];
                 if (activeActionId === 'gotIt') gotItCards[currentDeckId] = [];
-                saveData();
+                saveState();
                 renderDeck();
             }
         }
@@ -658,11 +659,11 @@
             if(activeActionType === 'section') {
                 const secIndex = sections.findIndex(s => s.id === activeActionId);
                 const newName = prompt("Enter new section name:", sections[secIndex].name);
-                if (newName && newName.trim()) { sections[secIndex].name = newName.trim(); saveData(); renderHome(); }
+                if (newName && newName.trim()) { sections[secIndex].name = newName.trim(); saveState(); renderHome(); }
             } else if (activeActionType === 'deck') {
                 const deckIndex = decks.findIndex(d => d.id === activeActionId);
                 const newName = prompt("Enter new deck name:", decks[deckIndex].name);
-                if (newName && newName.trim()) { decks[deckIndex].name = newName.trim(); saveData(); renderSection(); }
+                if (newName && newName.trim()) { decks[deckIndex].name = newName.trim(); saveState(); renderSection(); }
             } else if (activeActionType === 'card') {
                 editingCardIndex = activeActionId; 
                 
@@ -697,7 +698,7 @@
                         delete gotItCards[deck.id]; 
                     });
                     decks = decks.filter(d => d.sectionId !== activeActionId);
-                    saveData(); renderHome();
+                    saveState(); renderHome();
                 }
             } else if (activeActionType === 'deck') {
                 if (confirm("⚠️ Delete this deck and all its cards?")) {
@@ -705,7 +706,7 @@
                     delete cards[activeActionId];
                     delete skippedCards[activeActionId];
                     delete gotItCards[activeActionId];
-                    saveData(); renderSection();
+                    saveState(); renderSection();
                 }
             } else if (activeActionType === 'card') {
                 if (confirm("⚠️ Delete this card?")) {
@@ -716,15 +717,12 @@
                     } else if (currentStudyCategory === 'gotIt') {
                         gotItCards[currentDeckId].splice(activeActionId, 1);
                     }
-                    saveData(); 
+                    saveState(); 
                     renderDeck();
                 }
             }
         }
 
-        // =========================================================================
-        // 4. LOGIKA RENDER UI 
-        // =========================================================================
         function showCreateSection() { document.getElementById('createSectionArea').style.display = 'block'; document.getElementById('newSectionName').focus(); }
         function hideCreateSection() { document.getElementById('createSectionArea').style.display = 'none'; document.getElementById('newSectionName').value = ''; }
         
@@ -732,7 +730,7 @@
             const name = document.getElementById('newSectionName').value.trim();
             if (!name) return;
             sections.push({ id: 's_' + Date.now().toString(), name: name });
-            saveData(); hideCreateSection(); renderHome();
+            saveState(); hideCreateSection(); renderHome();
         }
 
         window.goToSection = function(id) { currentSectionId = id; navigateTo('sectionView'); };
@@ -773,7 +771,7 @@
             cards[newDeck.id] = [];
             skippedCards[newDeck.id] = [];
             gotItCards[newDeck.id] = [];
-            saveData(); hideCreateDeck(); renderSection();
+            saveState(); hideCreateDeck(); renderSection();
         }
 
         window.goToDeck = function(id) { 
@@ -891,9 +889,6 @@
             });
         }
 
-        // =========================================================================
-        // 5. LOGIKA KARTU (ADD / PREVIEW / STUDY)
-        // =========================================================================
         function generateRubyHTML(word, furiganaStr) {
             if (!furiganaStr) return word;
             const furiganaParts = furiganaStr.trim().split(/\s+/);
@@ -961,13 +956,12 @@
                 targetArr[currentDeckId].push({ front, furigana, reading, meaningEn, meaningId });
             }
             
-            saveData();
+            saveState();
             
             if (addAnother) { navigateToAddCard(); } 
             else { navigateTo('deckView'); }
         }
 
-        // --- STUDY SECTION (ALL MAIN DECKS) ---
         function startSectionStudy(initShuffle = false) {
             returnViewId = 'sectionView';
             currentStudyCategory = 'main'; 
@@ -997,7 +991,6 @@
             navigateTo('studyView');
         }
 
-        // --- STUDY DECK ---
         function startStudy(initShuffle = false) {
             returnViewId = 'deckView';
             
@@ -1074,7 +1067,7 @@
                     if (!gotItCards[targetDeckId]) gotItCards[targetDeckId] = [];
                     if (!isCardInArray(cleanCard, gotItCards[targetDeckId])) gotItCards[targetDeckId].push(cleanCard);
                 }
-                saveData(); // PASTI TERSIMPAN SETIAP KALI BELAJAR KARTU
+                saveState(); // SAVE IMMEDIATELY
             }
 
             document.getElementById('studyCard').classList.remove('is-flipped');
@@ -1099,7 +1092,7 @@
                 gotItCards[currentDeckId] = gotItCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
             }
 
-            saveData();
+            saveState(); // SAVE IMMEDIATELY
             document.getElementById('studyCard').classList.remove('is-flipped');
             studyGotIt++; 
 
@@ -1129,7 +1122,7 @@
         function endStudy() { navigateTo(returnViewId); }
 
         // =========================================================================
-        // 6. IMPORT/EXPORT CSV (TERISOLASI HANYA UNTUK MAIN DECK)
+        // REFACTORED CSV IMPORT LOGIC (MUTATES MEMORY FIRST, THEN SAVES)
         // =========================================================================
         function exportToCSV() {
             let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID\n";
@@ -1200,9 +1193,9 @@
                             meaningId = clean(cols[6]);
                         }
 
-                        // Proteksi agar header tidak masuk jadi kartu
                         if (!front || front.toLowerCase() === 'front' || secName.toLowerCase() === 'section') continue; 
 
+                        // 1. Mutate In-Memory Objects
                         let targetSec = sections.find(s => s.name === secName);
                         if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
 
@@ -1218,7 +1211,11 @@
 
                         cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
                     }
-                    saveData(); 
+                    
+                    // 2. Save explicitly
+                    saveState(); 
+                    
+                    // 3. Render
                     renderHome(); 
                     if(currentSectionId) renderSection();
                     if(currentDeckId) renderDeck();
@@ -1232,7 +1229,6 @@
             reader.readAsText(file);
         }
 
-        // INIT PWA
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
     </script>
 </body>
