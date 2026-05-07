@@ -258,19 +258,13 @@
 
         <div class="tab-container">
             <button id="tab_main" class="tab-btn active" onclick="switchDeckTab('main')">Main (0)</button>
-            
             <button id="tab_skipped" class="tab-btn" 
-                onmousedown="handleStartPress('skipped', 'tab')" 
-                ontouchstart="handleStartPress('skipped', 'tab')" 
-                onmouseup="handleEndPress()" onmouseleave="handleEndPress()"
-                ontouchend="handleEndPress()" ontouchmove="handleEndPress()"
+                onmousedown="handleStartPress('skipped', 'tab')" ontouchstart="handleStartPress('skipped', 'tab')" 
+                onmouseup="handleEndPress()" onmouseleave="handleEndPress()" ontouchend="handleEndPress()" ontouchmove="handleEndPress()"
                 onclick="handleItemClick('skipped', 'tab', event)">Skipped (0)</button>
-                
             <button id="tab_gotIt" class="tab-btn" 
-                onmousedown="handleStartPress('gotIt', 'tab')" 
-                ontouchstart="handleStartPress('gotIt', 'tab')" 
-                onmouseup="handleEndPress()" onmouseleave="handleEndPress()"
-                ontouchend="handleEndPress()" ontouchmove="handleEndPress()"
+                onmousedown="handleStartPress('gotIt', 'tab')" ontouchstart="handleStartPress('gotIt', 'tab')" 
+                onmouseup="handleEndPress()" onmouseleave="handleEndPress()" ontouchend="handleEndPress()" ontouchmove="handleEndPress()"
                 onclick="handleItemClick('gotIt', 'tab', event)">Got It (0)</button>
         </div>
 
@@ -349,19 +343,13 @@
                 <div class="card-face card-back">
                     <div class="card-label">WORD</div>
                     <div class="back-kanji-text" id="studyBackWord">Word</div>
-                    
                     <div class="card-divider"></div>
-                    
                     <div class="card-label">READING</div>
                     <div class="reading-text" id="studyReading">Reading</div>
-                    
                     <div class="card-divider"></div>
-                    
                     <div class="card-label">MEANING</div>
-                    
                     <div class="lang-label">en</div>
                     <div class="meaning-text" id="studyMeaningEn">Meaning EN</div>
-                    
                     <div class="lang-label">id</div>
                     <div class="meaning-text" id="studyMeaningId" style="margin-bottom: 0;">Meaning ID</div>
                 </div>
@@ -396,7 +384,6 @@
         <div class="results-box">
             <div class="results-icon">🎉</div>
             <h2 id="resultsDeckName">Deck Name</h2>
-            
             <div class="results-stats">
                 <div class="stat-box">
                     <div class="stat-number" style="color: var(--danger);" id="resultSkipped">0</div>
@@ -449,13 +436,12 @@
 </div>
 
     <script>
-        // Data Structure
-        let sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
-        let decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
-        let cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
-        
-        let skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {};
-        let gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {};
+        // GLOBALS
+        let sections = [];
+        let decks = [];
+        let cards = {};
+        let skippedCards = {};
+        let gotItCards = {};
         
         let currentSectionId = null;
         let currentDeckId = null;
@@ -477,9 +463,46 @@
         let activeActionId = null;
         let activeActionType = null;
         
-        // Multi-select state
         let isSelectMode = false;
         let selectedCards = new Set();
+
+        // 1. BULLETPROOF DATA LOADING
+        function loadData() {
+            try {
+                const s = localStorage.getItem('flashcard_sections');
+                const d = localStorage.getItem('flashcard_decks');
+                const c = localStorage.getItem('flashcard_cards');
+                const skip = localStorage.getItem('flashcard_skipped');
+                const got = localStorage.getItem('flashcard_gotit');
+
+                if (s) sections = JSON.parse(s);
+                if (d) decks = JSON.parse(d);
+                if (c) cards = JSON.parse(c);
+                if (skip) skippedCards = JSON.parse(skip);
+                if (got) gotItCards = JSON.parse(got);
+
+                if (!Array.isArray(sections)) sections = [];
+                if (!Array.isArray(decks)) decks = [];
+                if (typeof cards !== 'object' || cards === null) cards = {};
+                if (typeof skippedCards !== 'object' || skippedCards === null) skippedCards = {};
+                if (typeof gotItCards !== 'object' || gotItCards === null) gotItCards = {};
+            } catch (err) {
+                console.error("Data load error:", err);
+                sections = []; decks = []; cards = {}; skippedCards = {}; gotItCards = {};
+            }
+        }
+        
+        function saveData() {
+            try {
+                localStorage.setItem('flashcard_sections', JSON.stringify(sections));
+                localStorage.setItem('flashcard_decks', JSON.stringify(decks));
+                localStorage.setItem('flashcard_cards', JSON.stringify(cards));
+                localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
+                localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
+            } catch (e) {
+                alert("Gagal menyimpan data! Storage HP penuh atau diblokir browser: " + e.message);
+            }
+        }
 
         // --- TRUE RANDOM SHUFFLE ALGORITHM ---
         function shuffleArray(array) {
@@ -500,20 +523,10 @@
             return arr.some(c => isCardEqual(c, card));
         }
 
-        function loadDataFromStorage() {
-            sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
-            decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
-            cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
-            skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {};
-            gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {};
-        }
-
         function navigateTo(viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
-            
             exitSelectMode(); 
-            
             if(viewId === 'homeView') renderHome();
             if(viewId === 'sectionView') renderSection();
             if(viewId === 'deckView') renderDeck();
@@ -536,16 +549,10 @@
 
         function handleItemClick(id, type, event) {
             if (isLongPress) { isLongPress = false; return; } 
-            
             if (type === 'section') goToSection(id);
             if (type === 'deck') goToDeck(id);
             if (type === 'tab') switchDeckTab(id);
-            
-            if (type === 'card') {
-                if (isSelectMode) {
-                    toggleCardSelection(id); 
-                }
-            }
+            if (type === 'card' && isSelectMode) { toggleCardSelection(id); }
         }
 
         function openActions(id, type) {
@@ -620,9 +627,7 @@
                 if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
 
                 targetArr[currentDeckId] = targetArr[currentDeckId].filter((_, i) => !selectedCards.has(i));
-                
-                saveData();
-                exitSelectMode();
+                saveData(); exitSelectMode();
             }
         }
         
@@ -632,8 +637,7 @@
             if (confirm(`⚠️ Are you sure you want to empty the ${deckName} sub deck? All cards inside will be deleted.`)) {
                 if (activeActionId === 'skipped') skippedCards[currentDeckId] = [];
                 if (activeActionId === 'gotIt') gotItCards[currentDeckId] = [];
-                saveData();
-                renderDeck();
+                saveData(); renderDeck();
             }
         }
 
@@ -649,7 +653,6 @@
                 if (newName && newName.trim()) { decks[deckIndex].name = newName.trim(); saveData(); renderSection(); }
             } else if (activeActionType === 'card') {
                 editingCardIndex = activeActionId; 
-                
                 let targetArr = cards;
                 if (currentStudyCategory === 'skipped') targetArr = skippedCards;
                 if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
@@ -659,15 +662,12 @@
                 document.getElementById('cardFront').value = card.front;
                 document.getElementById('cardFurigana').value = card.furigana || '';
                 document.getElementById('cardReading').value = card.reading || '';
-                
                 document.getElementById('cardMeaningEn').value = card.meaningEn || card.meaning || '';
                 document.getElementById('cardMeaningId').value = card.meaningId || '';
                 
                 document.getElementById('addCardTitle').innerText = "Edit Card";
                 document.getElementById('btnSaveAnother').style.display = 'none'; 
-                
-                updatePreview();
-                navigateTo('addCardView');
+                updatePreview(); navigateTo('addCardView');
             }
         }
 
@@ -677,9 +677,7 @@
                 if (confirm("⚠️ Delete this section and all its decks/cards?")) {
                     sections = sections.filter(s => s.id !== activeActionId);
                     decks.filter(d => d.sectionId === activeActionId).forEach(deck => { 
-                        delete cards[deck.id]; 
-                        delete skippedCards[deck.id]; 
-                        delete gotItCards[deck.id]; 
+                        delete cards[deck.id]; delete skippedCards[deck.id]; delete gotItCards[deck.id]; 
                     });
                     decks = decks.filter(d => d.sectionId !== activeActionId);
                     saveData(); renderHome();
@@ -687,9 +685,7 @@
             } else if (activeActionType === 'deck') {
                 if (confirm("⚠️ Delete this deck and all its cards?")) {
                     decks = decks.filter(d => d.id !== activeActionId);
-                    delete cards[activeActionId];
-                    delete skippedCards[activeActionId];
-                    delete gotItCards[activeActionId];
+                    delete cards[activeActionId]; delete skippedCards[activeActionId]; delete gotItCards[activeActionId];
                     saveData(); renderSection();
                 }
             } else if (activeActionType === 'card') {
@@ -719,19 +715,16 @@
         function renderHome() {
             const list = document.getElementById('sectionList');
             list.innerHTML = '';
-            
             if(sections.length === 0) {
                  list.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 40px;">No sections yet. Press + to begin.</p>';
                  return;
             }
-
             sections.forEach(sec => {
                 const sectionDecks = decks.filter(d => d.sectionId === sec.id);
                 const li = document.createElement('li');
                 li.className = 'deck-card';
                 li.setAttribute('oncontextmenu', 'return false;');
                 li.innerHTML = `<div class="card-info"><h3>${sec.name}</h3><p>${sectionDecks.length} decks</p></div><div class="card-arrow">→</div>`;
-                
                 li.onmousedown = () => handleStartPress(sec.id, 'section');
                 li.ontouchstart = () => handleStartPress(sec.id, 'section');
                 li.onmouseup = handleEndPress; li.onmouseleave = handleEndPress;
@@ -749,21 +742,16 @@
             if (!name) return;
             const newDeck = { id: 'd_' + Date.now().toString(), sectionId: currentSectionId, name: name };
             decks.push(newDeck); 
-            cards[newDeck.id] = [];
-            skippedCards[newDeck.id] = [];
-            gotItCards[newDeck.id] = [];
+            cards[newDeck.id] = []; skippedCards[newDeck.id] = []; gotItCards[newDeck.id] = [];
             saveData(); hideCreateDeck(); renderSection();
         }
 
         window.goToDeck = function(id) { 
-            currentDeckId = id; 
-            currentStudyCategory = 'main'; 
-            navigateTo('deckView'); 
+            currentDeckId = id; currentStudyCategory = 'main'; navigateTo('deckView'); 
         };
         
         window.switchDeckTab = function(category) {
-            exitSelectMode();
-            currentStudyCategory = category;
+            exitSelectMode(); currentStudyCategory = category;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('tab_' + category).classList.add('active');
             renderDeck();
@@ -774,7 +762,6 @@
             document.getElementById('currentSectionTitle').innerText = sec.name;
             const list = document.getElementById('deckList');
             list.innerHTML = '';
-            
             const sectionDecks = decks.filter(d => d.sectionId === currentSectionId);
             if(sectionDecks.length === 0) list.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No decks here yet.</p>';
             
@@ -784,7 +771,6 @@
                 li.className = 'deck-card';
                 li.setAttribute('oncontextmenu', 'return false;');
                 li.innerHTML = `<div class="card-info"><h3>${deck.name}</h3><p>${cardCount} cards</p></div><div class="card-arrow">→</div>`;
-                
                 li.onmousedown = () => handleStartPress(deck.id, 'deck');
                 li.ontouchstart = () => handleStartPress(deck.id, 'deck');
                 li.onmouseup = handleEndPress; li.onmouseleave = handleEndPress;
@@ -796,7 +782,6 @@
 
         function renderDeck() {
             const deck = decks.find(d => d.id === currentDeckId);
-            
             const mainArr = cards[currentDeckId] || [];
             const skipArr = skippedCards[currentDeckId] || [];
             const gotArr = gotItCards[currentDeckId] || [];
@@ -873,36 +858,27 @@
         function generateRubyHTML(word, furiganaStr) {
             if (!furiganaStr) return word;
             const furiganaParts = furiganaStr.trim().split(/\s+/);
-            let html = "";
-            let fIndex = 0;
-            
+            let html = ""; let fIndex = 0;
             for (let i = 0; i < word.length; i++) {
                 const char = word[i];
                 if (char.match(/[\u4e00-\u9faf\u3400-\u4dbf]/)) {
-                    const rt = furiganaParts[fIndex] || "";
-                    fIndex++;
+                    const rt = furiganaParts[fIndex] || ""; fIndex++;
                     html += `<ruby>${char}<rt>${rt}</rt></ruby>`;
-                } else {
-                    html += char;
-                }
+                } else { html += char; }
             }
             return html;
         }
 
         function navigateToAddCard() {
-            editingCardIndex = null;
-            currentStudyCategory = 'main'; 
-            
+            editingCardIndex = null; currentStudyCategory = 'main'; 
             document.getElementById('addCardTitle').innerText = "Add Card";
             document.getElementById('btnSaveAnother').style.display = 'block'; 
-            
             document.getElementById('cardFront').value = '';
             document.getElementById('cardFurigana').value = '';
             document.getElementById('cardReading').value = '';
             document.getElementById('cardMeaningEn').value = '';
             document.getElementById('cardMeaningId').value = '';
-            updatePreview();
-            navigateTo('addCardView');
+            updatePreview(); navigateTo('addCardView');
         }
 
         function updatePreview() {
@@ -914,7 +890,6 @@
             
             document.getElementById('previewWord').classList.add('show-furigana');
             document.getElementById('previewWord').innerHTML = generateRubyHTML(front, furigana);
-            
             document.getElementById('previewReading').innerText = reading;
             document.getElementById('previewMeaningEn').innerText = meaningEn;
             document.getElementById('previewMeaningId').innerText = meaningId;
@@ -935,27 +910,16 @@
 
             if (!targetArr[currentDeckId]) targetArr[currentDeckId] = [];
             
-            if (editingCardIndex !== null) {
-                targetArr[currentDeckId][editingCardIndex] = { front, furigana, reading, meaningEn, meaningId };
-            } else {
-                targetArr[currentDeckId].push({ front, furigana, reading, meaningEn, meaningId });
-            }
+            if (editingCardIndex !== null) { targetArr[currentDeckId][editingCardIndex] = { front, furigana, reading, meaningEn, meaningId }; } 
+            else { targetArr[currentDeckId].push({ front, furigana, reading, meaningEn, meaningId }); }
             
             saveData();
-            
-            if (addAnother) {
-                navigateToAddCard(); 
-            } else {
-                navigateTo('deckView');
-            }
+            if (addAnother) { navigateToAddCard(); } else { navigateTo('deckView'); }
         }
 
-        // --- STUDY SECTION (ALL MAIN DECKS) ---
+        // --- STUDY SECTION ---
         function startSectionStudy(initShuffle = false) {
-            returnViewId = 'sectionView';
-            currentStudyCategory = 'main'; 
-            originalStudyOrder = [];
-            
+            returnViewId = 'sectionView'; currentStudyCategory = 'main'; originalStudyOrder = [];
             const sectionDecks = decks.filter(d => d.sectionId === currentSectionId);
             sectionDecks.forEach(deck => {
                 if (cards[deck.id]) {
@@ -966,29 +930,20 @@
 
             if (originalStudyOrder.length === 0) return alert("Add some cards to this section first!");
             
-            studyCards = [...originalStudyOrder];
-            isShuffled = initShuffle;
-            studyGotIt = 0;
-            studySkipped = 0;
-            
+            studyCards = [...originalStudyOrder]; isShuffled = initShuffle; studyGotIt = 0; studySkipped = 0;
             if (isShuffled) studyCards = shuffleArray(studyCards);
-            document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
+            document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             document.getElementById('btnRemoveSub').style.display = 'none';
-
-            showFurigana = false;
-            document.getElementById('furiganaToggle').className = 'tool-icon';
+            showFurigana = false; document.getElementById('furiganaToggle').className = 'tool-icon';
             document.getElementById('studyCard').classList.remove('show-furigana');
 
-            currentStudyIndex = 0;
-            loadStudyCard();
-            navigateTo('studyView');
+            currentStudyIndex = 0; loadStudyCard(); navigateTo('studyView');
         }
 
         // --- STUDY DECK ---
         function startStudy(initShuffle = false) {
             returnViewId = 'deckView';
-            
             let sourceArr = cards[currentDeckId] || [];
             if (currentStudyCategory === 'skipped') sourceArr = skippedCards[currentDeckId] || [];
             if (currentStudyCategory === 'gotIt') sourceArr = gotItCards[currentDeckId] || [];
@@ -996,48 +951,29 @@
             originalStudyOrder = [...sourceArr];
             if (originalStudyOrder.length === 0) return alert(`No cards in ${currentStudyCategory}!`);
             
-            studyCards = [...originalStudyOrder];
-            isShuffled = initShuffle;
-            studyGotIt = 0;
-            studySkipped = 0;
-            
+            studyCards = [...originalStudyOrder]; isShuffled = initShuffle; studyGotIt = 0; studySkipped = 0;
             if (isShuffled) studyCards = shuffleArray(studyCards);
-            document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
-            if (currentStudyCategory === 'main') {
-                document.getElementById('btnRemoveSub').style.display = 'none';
-            } else {
-                document.getElementById('btnRemoveSub').style.display = 'block';
-            }
+            document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
+            if (currentStudyCategory === 'main') { document.getElementById('btnRemoveSub').style.display = 'none'; } 
+            else { document.getElementById('btnRemoveSub').style.display = 'block'; }
 
-            showFurigana = false;
-            document.getElementById('furiganaToggle').className = 'tool-icon';
+            showFurigana = false; document.getElementById('furiganaToggle').className = 'tool-icon';
             document.getElementById('studyCard').classList.remove('show-furigana');
-
-            currentStudyIndex = 0;
-            loadStudyCard();
-            navigateTo('studyView');
+            currentStudyIndex = 0; loadStudyCard(); navigateTo('studyView');
         }
 
         window.toggleShuffle = function() {
-            isShuffled = !isShuffled;
-            document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
-            
+            isShuffled = !isShuffled; document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             const currentCard = studyCards[currentStudyIndex];
-            
-            if (isShuffled) {
-                studyCards = shuffleArray([...originalStudyOrder]);
-            } else {
-                studyCards = [...originalStudyOrder];
-            }
-            
+            if (isShuffled) { studyCards = shuffleArray([...originalStudyOrder]); } 
+            else { studyCards = [...originalStudyOrder]; }
             currentStudyIndex = studyCards.findIndex(c => c === currentCard);
             document.getElementById('studyProgress').innerText = `Card ${currentStudyIndex + 1} of ${studyCards.length}`;
         };
 
         window.toggleFurigana = function() {
-            showFurigana = !showFurigana;
-            document.getElementById('furiganaToggle').className = showFurigana ? 'tool-icon active' : 'tool-icon';
+            showFurigana = !showFurigana; document.getElementById('furiganaToggle').className = showFurigana ? 'tool-icon active' : 'tool-icon';
             const cardEl = document.getElementById('studyCard');
             if (showFurigana) cardEl.classList.add('show-furigana'); else cardEl.classList.remove('show-furigana');
         };
@@ -1045,15 +981,11 @@
         function loadStudyCard() {
             document.getElementById('studyCard').classList.remove('is-flipped');
             const card = studyCards[currentStudyIndex];
-            
             document.getElementById('studyProgress').innerText = `Card ${currentStudyIndex + 1} of ${studyCards.length}`;
-            
             const rubyHTML = generateRubyHTML(card.front, card.furigana);
             document.getElementById('studyFront').innerHTML = rubyHTML;
             document.getElementById('studyBackWord').innerHTML = rubyHTML;
-            
             document.getElementById('studyReading').innerText = card.reading || "";
-            
             document.getElementById('studyMeaningEn').innerText = card.meaningEn || card.meaning || '-';
             document.getElementById('studyMeaningId').innerText = card.meaningId || '-';
         }
@@ -1065,19 +997,13 @@
             const targetDeckId = currentCard._deckId || currentDeckId; 
 
             if (currentStudyCategory === 'main') {
-                const cleanCard = {...currentCard};
-                delete cleanCard._deckId; 
-
+                const cleanCard = {...currentCard}; delete cleanCard._deckId; 
                 if (result === 'skip') {
                     if (!skippedCards[targetDeckId]) skippedCards[targetDeckId] = [];
-                    if (!isCardInArray(cleanCard, skippedCards[targetDeckId])) {
-                        skippedCards[targetDeckId].push(cleanCard);
-                    }
+                    if (!isCardInArray(cleanCard, skippedCards[targetDeckId])) skippedCards[targetDeckId].push(cleanCard);
                 } else if (result === 'done') {
                     if (!gotItCards[targetDeckId]) gotItCards[targetDeckId] = [];
-                    if (!isCardInArray(cleanCard, gotItCards[targetDeckId])) {
-                        gotItCards[targetDeckId].push(cleanCard);
-                    }
+                    if (!isCardInArray(cleanCard, gotItCards[targetDeckId])) gotItCards[targetDeckId].push(cleanCard);
                 }
                 saveData();
             }
@@ -1088,40 +1014,24 @@
 
             setTimeout(() => {
                 currentStudyIndex++;
-                if (currentStudyIndex >= studyCards.length) {
-                    showResults();
-                } else {
-                    loadStudyCard();
-                }
+                if (currentStudyIndex >= studyCards.length) { showResults(); } else { loadStudyCard(); }
             }, 300);
         }
 
         window.removeAndMoveToGotIt = function() {
             const currentCard = studyCards[currentStudyIndex];
-            
             if (!gotItCards[currentDeckId]) gotItCards[currentDeckId] = [];
-
             if (currentStudyCategory === 'skipped') {
                 skippedCards[currentDeckId] = skippedCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
-                if (!isCardInArray(currentCard, gotItCards[currentDeckId])) {
-                    gotItCards[currentDeckId].push({...currentCard});
-                }
+                if (!isCardInArray(currentCard, gotItCards[currentDeckId])) gotItCards[currentDeckId].push({...currentCard});
             } else if (currentStudyCategory === 'gotIt') {
                 gotItCards[currentDeckId] = gotItCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
             }
-
             saveData();
-            
-            document.getElementById('studyCard').classList.remove('is-flipped');
-            studyGotIt++; 
-
+            document.getElementById('studyCard').classList.remove('is-flipped'); studyGotIt++; 
             setTimeout(() => {
                 currentStudyIndex++;
-                if (currentStudyIndex >= studyCards.length) {
-                    showResults();
-                } else {
-                    loadStudyCard();
-                }
+                if (currentStudyIndex >= studyCards.length) { showResults(); } else { loadStudyCard(); }
             }, 300);
         }
 
@@ -1135,7 +1045,6 @@
                 document.getElementById('resultsDeckName').innerText = sec.name + " (All Decks)";
                 document.getElementById('resultsBackButton').innerText = "Back to Section";
             }
-            
             document.getElementById('resultGotIt').innerText = studyGotIt;
             document.getElementById('resultSkipped').innerText = studySkipped;
             navigateTo('resultsView');
@@ -1144,25 +1053,13 @@
         function endStudy() { navigateTo(returnViewId); }
 
         // ==========================================
-        // 100% PURE ISOLATED CSV EXPORT / IMPORT
-        // Only interacts with 'cards' (Main Deck)
-        // Completely ignores Sub Decks
+        // ISOLATED CSV EXPORT / IMPORT (MAIN DECK ONLY)
         // ==========================================
-        function saveData() {
-            localStorage.setItem('flashcard_sections', JSON.stringify(sections));
-            localStorage.setItem('flashcard_decks', JSON.stringify(decks));
-            localStorage.setItem('flashcard_cards', JSON.stringify(cards));
-            localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
-            localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
-        }
-
         function exportToCSV() {
             let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID\n";
             const escapeCSV = (text) => `"${(text || '').replace(/"/g, '""')}"`;
-
             sections.forEach(sec => {
                 decks.filter(d => d.sectionId === sec.id).forEach(deck => {
-                    // EXPORT ONLY FROM MAIN DECK (cards object)
                     (cards[deck.id] || []).forEach(c => {
                         const en = c.meaningEn || c.meaning || '';
                         const id = c.meaningId || '';
@@ -1170,7 +1067,6 @@
                     });
                 });
             });
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -1184,12 +1080,9 @@
             reader.onload = function(e) {
                 try {
                     const rows = e.target.result.split(/\r?\n/).filter(row => row.trim() !== '');
-                    if (rows.length <= 1) {
-                        alert("File CSV kosong atau tidak valid.");
-                        return;
-                    }
+                    if (rows.length <= 1) { alert("File CSV kosong atau tidak valid."); return; }
 
-                    // Strict comma split using regex to ignore commas inside quotes
+                    // Parser CSV Tahan Banting (Abaikan koma di dalam tanda kutip)
                     for (let i = 1; i < rows.length; i++) {
                         const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
                         if (!cols || cols.length < 3) continue; 
@@ -1202,54 +1095,40 @@
                         const furigana = clean(cols[3]) || "";
                         const reading = clean(cols[4]) || ""; 
                         
-                        let meaningEn = '';
-                        let meaningId = '';
+                        let meaningEn = ''; let meaningId = '';
+                        if (cols.length === 6) { meaningEn = clean(cols[5]); } 
+                        else if (cols.length >= 7) { meaningEn = clean(cols[5]); meaningId = clean(cols[6]); }
 
-                        if (cols.length === 6) { 
-                            meaningEn = clean(cols[5]);
-                        } else if (cols.length >= 7) { 
-                            meaningEn = clean(cols[5]);
-                            meaningId = clean(cols[6]);
-                        }
-
-                        if (!front) continue; 
+                        // CEGAH HEADER MASUK JADI KARTU
+                        if (!front || front.toLowerCase() === 'front' || secName.toLowerCase() === 'section') continue; 
 
                         let targetSec = sections.find(s => s.name === secName);
                         if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
 
                         let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
                         if (!targetDeck) { 
-                            targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
-                            decks.push(targetDeck); 
+                            targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; decks.push(targetDeck); 
                         }
 
                         if (!cards[targetDeck.id]) cards[targetDeck.id] = [];
                         if (!skippedCards[targetDeck.id]) skippedCards[targetDeck.id] = [];
                         if (!gotItCards[targetDeck.id]) gotItCards[targetDeck.id] = [];
 
-                        // IMPORT EXCLUSIVELY TO MAIN DECK (cards object)
                         cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
                     }
-                    saveData(); 
-                    renderHome(); 
+                    saveData(); renderHome(); 
                     if(currentSectionId) renderSection();
                     if(currentDeckId) renderDeck();
-                    alert("Import file CSV selesai! (Data dimasukkan ke Main Deck)"); 
-                } catch(error) {
-                    alert("Error saat membaca file: " + error.message);
-                }
-                event.target.value = ''; 
-                closeModal('settingsModal');
+                    alert("Import file CSV selesai! (Data dimasukkan murni ke Main Deck)"); 
+                } catch(error) { alert("Error saat membaca file: " + error.message); }
+                event.target.value = ''; closeModal('settingsModal');
             };
             reader.readAsText(file);
         }
 
-        // DYNAMIC DOM LOAD (Fixes the blank screen on refresh issue)
-        document.addEventListener('DOMContentLoaded', () => {
-            loadDataFromStorage();
-            renderHome();
-        });
-
+        // Initialize App
+        loadData();
+        renderHome();
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
     </script>
 </body>
