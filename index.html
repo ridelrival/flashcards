@@ -169,7 +169,7 @@
     <div id="homeView" class="view active">
         <div class="header">
             <p style="color: var(--text-muted); font-weight: 500;">Learn with</p>
-            <h1>Flash Cards</h1>
+            <h1>Flashcards</h1>
         </div>
         
         <div id="createSectionArea" style="display: none; margin-bottom: 20px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
@@ -183,6 +183,8 @@
         <p class="hint-text">Press and hold a section for 0.5s to edit or delete</p>
         <ul class="deck-list" id="sectionList"></ul>
         <button class="fab" onclick="showCreateSection()">+</button>
+        <!-- Settings button now on Home Page too -->
+        <button class="fab fab-secondary" onclick="openSettings()">⚙️</button>
     </div>
 
     <!-- SECTION VIEW (Decks) -->
@@ -280,7 +282,7 @@
                 onclick="handleItemClick('gotIt', 'tab', event)">Got It (0)</button>
         </div>
 
-        <p class="hint-text" id="deckHintText" style="margin-top: 0px; margin-bottom: 16px;">Press & hold a card for 0.5s to edit or select</p>
+        <p class="hint-text" id="deckHintText" style="margin-top: 0px; margin-bottom: 16px;">Press & hold a card for 0.5s for options</p>
 
         <ul class="deck-list" id="cardList"></ul>
     </div>
@@ -521,7 +523,7 @@
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
             
-            exitSelectMode(); // Clear selection when leaving view
+            exitSelectMode(); 
             
             if(viewId === 'homeView') renderHome();
             if(viewId === 'sectionView') renderSection();
@@ -536,15 +538,15 @@
             isLongPress = false;
             pressTimer = setTimeout(() => {
                 isLongPress = true;
-                if (type === 'card' && isSelectMode) return; // Prevent action modal if already in Select Mode
-                openActions(id, type); // Long press opens the unified Options menu
+                if (type === 'card' && isSelectMode) return; 
+                openActions(id, type); 
             }, 500); 
         }
 
         function handleEndPress() { clearTimeout(pressTimer); }
 
         function handleItemClick(id, type, event) {
-            if (isLongPress) { isLongPress = false; return; } // Prevent click if we just triggered a long press
+            if (isLongPress) { isLongPress = false; return; } 
             
             if (type === 'section') goToSection(id);
             if (type === 'deck') goToDeck(id);
@@ -552,9 +554,9 @@
             
             if (type === 'card') {
                 if (isSelectMode) {
-                    toggleCardSelection(id); // Normal tap ONLY works if already in Select Mode
+                    toggleCardSelection(id); 
                 }
-                // If NOT in select mode, simple tap does absolutely nothing!
+                // Jika tidak di Select Mode, tap tidak melakukan apapun (Aman dari ketidaksengajaan)
             }
         }
 
@@ -577,7 +579,7 @@
             }
             else if (type === 'card') {
                 title = "Card Options";
-                document.getElementById('btnActionSelect').style.display = 'flex'; // Show select option
+                document.getElementById('btnActionSelect').style.display = 'flex'; 
             }
             
             document.getElementById('actionModalTitle').innerText = title;
@@ -615,9 +617,9 @@
             if (currentStudyCategory === 'gotIt') activeArr = gotItCards[currentDeckId] || [];
             
             if (selectedCards.size === activeArr.length) {
-                selectedCards.clear(); // Deselect all if all are selected
+                selectedCards.clear(); 
             } else {
-                activeArr.forEach((_, i) => selectedCards.add(i)); // Select all
+                activeArr.forEach((_, i) => selectedCards.add(i)); 
             }
             renderDeck();
         }
@@ -629,7 +631,6 @@
                 if (currentStudyCategory === 'skipped') targetArr = skippedCards;
                 if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
 
-                // Remove selected indices
                 targetArr[currentDeckId] = targetArr[currentDeckId].filter((_, i) => !selectedCards.has(i));
                 
                 saveData();
@@ -823,7 +824,6 @@
             document.getElementById('currentDeckTitle').innerText = deck.name;
             document.getElementById('currentDeckCount').innerText = `${activeArr.length} cards in ${currentStudyCategory}`;
             
-            // Toggle UI based on Select Mode
             const studyGroup = document.getElementById('studyButtonGroup');
             const selectBar = document.getElementById('selectBar');
             const hintText = document.getElementById('deckHintText');
@@ -836,7 +836,7 @@
             } else {
                 studyGroup.style.display = 'flex';
                 selectBar.style.display = 'none';
-                hintText.innerText = "Press & hold a card for 0.5s to edit or select";
+                hintText.innerText = "Press & hold a card for 0.5s for options";
             }
             
             const list = document.getElementById('cardList');
@@ -854,7 +854,6 @@
                 const enText = card.meaningEn || card.meaning || '-';
                 const idText = card.meaningId ? ` / ${card.meaningId}` : '';
 
-                // Select Mode visual adjustments
                 const checkDisplay = isSelectMode ? 'flex' : 'none';
                 const checkBg = isSelected ? 'var(--primary)' : 'transparent';
                 const checkBorder = isSelected ? 'var(--primary)' : 'var(--border)';
@@ -1199,39 +1198,62 @@
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
-                for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                    if (!cols || cols.length < 7) continue;
+                try {
+                    const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
+                    for (let i = 1; i < rows.length; i++) {
+                        const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                        if (!cols || cols.length < 5) continue; 
 
-                    const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-                    const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
-                    const front = clean(cols[2]); const furigana = clean(cols[3]);
-                    const reading = clean(cols[4]); 
-                    const meaningEn = clean(cols[5]); const meaningId = clean(cols[6]);
-                    const category = cols.length >= 8 ? clean(cols[7]) : 'main';
+                        const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+                        const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
+                        const front = clean(cols[2]); const furigana = clean(cols[3]);
+                        const reading = clean(cols[4]); 
+                        
+                        let meaningEn = '';
+                        let meaningId = '';
+                        let category = 'main';
 
-                    if (!front || (!meaningEn && !meaningId)) continue;
+                        if (cols.length === 6) {
+                            meaningEn = clean(cols[5]);
+                        } else if (cols.length >= 7) {
+                            meaningEn = clean(cols[5]);
+                            meaningId = clean(cols[6]);
+                        }
+                        if (cols.length >= 8) {
+                            category = clean(cols[7]);
+                        }
 
-                    let targetSec = sections.find(s => s.name === secName);
-                    if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
+                        if (!front) continue;
 
-                    let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
-                    if (!targetDeck) { 
-                        targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
-                        decks.push(targetDeck); 
-                        cards[targetDeck.id] = []; 
-                        skippedCards[targetDeck.id] = [];
-                        gotItCards[targetDeck.id] = [];
+                        let targetSec = sections.find(s => s.name === secName);
+                        if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
+
+                        let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
+                        if (!targetDeck) { 
+                            targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
+                            decks.push(targetDeck); 
+                        }
+
+                        if (!cards[targetDeck.id]) cards[targetDeck.id] = [];
+                        if (!skippedCards[targetDeck.id]) skippedCards[targetDeck.id] = [];
+                        if (!gotItCards[targetDeck.id]) gotItCards[targetDeck.id] = [];
+
+                        let targetArr = cards;
+                        if (category === 'skipped') targetArr = skippedCards;
+                        if (category === 'gotIt') targetArr = gotItCards;
+
+                        targetArr[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
                     }
-
-                    let targetArr = cards;
-                    if (category === 'skipped') targetArr = skippedCards;
-                    if (category === 'gotIt') targetArr = gotItCards;
-
-                    targetArr[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
+                    saveData(); 
+                    renderHome(); 
+                    if(currentSectionId) renderSection();
+                    if(currentDeckId) renderDeck();
+                    alert("Import complete!"); 
+                } catch(error) {
+                    alert("Error parsing CSV: " + error.message);
                 }
-                saveData(); renderHome(); alert("Import complete!"); event.target.value = ''; closeModal('settingsModal');
+                event.target.value = ''; 
+                closeModal('settingsModal');
             };
             reader.readAsText(file);
         }
