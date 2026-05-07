@@ -165,7 +165,6 @@
 
 <div class="app-container">
 
-    <!-- HOME VIEW (Sections) -->
     <div id="homeView" class="view active">
         <div class="header">
             <p style="color: var(--text-muted); font-weight: 500;">Learn with</p>
@@ -186,7 +185,6 @@
         <button class="fab fab-secondary" onclick="openSettings()">⚙️</button>
     </div>
 
-    <!-- SECTION VIEW (Decks) -->
     <div id="sectionView" class="view">
         <div class="deck-header" style="align-items: center;">
             <div class="deck-header-left">
@@ -197,7 +195,6 @@
         </div>
         <hr style="margin-bottom: 24px;">
         
-        <!-- STUDY ALL CARDS IN SECTION -->
         <div style="display: flex; gap: 12px; margin-bottom: 24px;">
             <button onclick="startSectionStudy()" style="flex: 4; background-color: black; color: white;">Study All</button>
             <button onclick="startSectionStudy(true)" class="secondary" style="flex: 1; padding: 0;" title="Shuffle All">
@@ -224,7 +221,6 @@
         <button class="fab fab-secondary" onclick="openSettings()">⚙️</button>
     </div>
 
-    <!-- DECK DETAIL VIEW (Cards) -->
     <div id="deckView" class="view">
         <div class="deck-header">
             <div class="deck-header-left">
@@ -238,7 +234,6 @@
         </div>
         <hr style="margin-bottom: 24px;">
         
-        <!-- Standard Study Buttons -->
         <div id="studyButtonGroup" style="display: flex; gap: 12px; margin-bottom: 16px;">
             <button onclick="startStudy()" style="flex: 4; background-color: black; color: white;">Start Study</button>
             <button onclick="startStudy(true)" class="secondary" style="flex: 1; padding: 0;" title="Shuffle Deck">
@@ -252,7 +247,6 @@
             </button>
         </div>
 
-        <!-- SELECT MODE BAR -->
         <div id="selectBar" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 16px; background: var(--card-bg); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <span id="selectCount" style="font-weight: bold; font-size: 14px;">0 Selected</span>
             <div style="display: flex; gap: 8px;">
@@ -262,7 +256,6 @@
             </div>
         </div>
 
-        <!-- Sub-category Tabs -->
         <div class="tab-container">
             <button id="tab_main" class="tab-btn active" onclick="switchDeckTab('main')">Main (0)</button>
             
@@ -286,7 +279,6 @@
         <ul class="deck-list" id="cardList"></ul>
     </div>
 
-    <!-- ADD/EDIT CARD VIEW -->
     <div id="addCardView" class="view">
         <div class="deck-header" style="align-items: center; margin-bottom: 24px;">
             <div class="deck-header-left">
@@ -295,7 +287,6 @@
             </div>
         </div>
 
-        <!-- Live Preview -->
         <div class="preview-box">
             <div class="preview-label" style="margin-bottom: 12px;">PREVIEW</div>
             
@@ -328,7 +319,6 @@
         <input type="text" id="cardFurigana" placeholder="e.g べん きょう" oninput="updatePreview()">
         <div class="helper-text">Write one reading per kanji, separated by a space. Example: 勉強する → べん きょう</div>
         
-        <!-- Dual Meaning Inputs -->
         <label>Meaning (English)</label>
         <textarea id="cardMeaningEn" rows="2" placeholder="Enter English meaning . . ." oninput="updatePreview()"></textarea>
 
@@ -341,7 +331,6 @@
         </div>
     </div>
 
-    <!-- STUDY VIEW -->
     <div id="studyView" class="view">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%;">
             <a class="nav-back" onclick="endStudy()" style="margin: 0; display: inline-block;">←</a>
@@ -350,16 +339,13 @@
         </div>
         
         <div class="card-container">
-            <!-- Main Flippable Card -->
             <div class="card" id="studyCard" onclick="flipCard()">
-                <!-- FRONT OF CARD -->
                 <div class="card-face">
                     <div style="display: inline-flex; flex-direction: column; align-items: center; max-width: 100%;">
                         <div class="front-text" id="studyFront" style="display: inline-block; font-weight: normal;">Word</div>
                         <div style="width: 100%; height: 2px; background: var(--border); margin-top: 12px; border-radius: 1px;"></div>
                     </div>
                 </div>
-                <!-- BACK OF CARD -->
                 <div class="card-face card-back">
                     <div class="card-label">WORD</div>
                     <div class="back-kanji-text" id="studyBackWord">Word</div>
@@ -402,7 +388,6 @@
         </div>
     </div>
 
-    <!-- RESULTS VIEW -->
     <div id="resultsView" class="view">
         <div class="deck-header" style="justify-content: center; margin-bottom: 24px;">
             <h1>Study Complete!</h1>
@@ -428,12 +413,11 @@
         <button id="resultsBackButton" onclick="endStudy()" style="width: 100%; padding: 16px;">Back to Deck</button>
     </div>
 
-    <!-- SETTINGS MODAL -->
     <div id="settingsModal" class="modal-overlay" onclick="closeModal('settingsModal', event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-modal" onclick="closeModal('settingsModal', event)">✕</button>
             <h2 style="margin-top: 10px;">Data Management</h2>
-            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Export your decks to Excel/CSV, or import an existing CSV file.</p>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">Export or Import your Main Decks (CSV).</p>
             <div class="action-column">
                 <button class="secondary" onclick="exportToCSV()">Export CSV</button>
                 <button class="secondary" onclick="document.getElementById('csvFileInput').click()">Import CSV</button>
@@ -442,7 +426,6 @@
         </div>
     </div>
 
-    <!-- ACTION (LONG PRESS) MODAL -->
     <div id="actionModal" class="modal-overlay" onclick="closeModal('actionModal', event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-modal" onclick="closeModal('actionModal', event)">✕</button>
@@ -465,7 +448,6 @@
 
 </div>
 
-    <!-- JAVASCRIPT LOGIC -->
     <script>
         // Data Structure
         let sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
@@ -1153,7 +1135,11 @@
 
         function endStudy() { navigateTo(returnViewId); }
 
-        // --- 100% REVERTED CSV LOGIC ---
+        // ==========================================
+        // 100% PURE ISOLATED CSV EXPORT / IMPORT
+        // Only interacts with 'cards' (Main Deck)
+        // Completely ignores Sub Decks
+        // ==========================================
         function saveData() {
             localStorage.setItem('flashcard_sections', JSON.stringify(sections));
             localStorage.setItem('flashcard_decks', JSON.stringify(decks));
@@ -1168,6 +1154,7 @@
 
             sections.forEach(sec => {
                 decks.filter(d => d.sectionId === sec.id).forEach(deck => {
+                    // EXPORT ONLY FROM MAIN DECK (cards object)
                     (cards[deck.id] || []).forEach(c => {
                         const en = c.meaningEn || c.meaning || '';
                         const id = c.meaningId || '';
@@ -1182,39 +1169,84 @@
             link.download = "flashcards_backup.csv"; link.click(); closeModal('settingsModal');
         }
 
+        function parseCSVLine(text, separator) {
+            let ret = [], col = '', inQuote = false;
+            for (let i = 0; i < text.length; i++) {
+                let c = text[i];
+                if (c === '"' && text[i+1] === '"') { col += '"'; i++; } // Escaped quote
+                else if (c === '"') { inQuote = !inQuote; }
+                else if (c === separator && !inQuote) { ret.push(col.trim()); col = ''; }
+                else { col += c; }
+            }
+            ret.push(col.trim());
+            return ret;
+        }
+
         function importFromCSV(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
-                for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                    if (!cols || cols.length < 7) continue;
-
-                    const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-                    const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
-                    const front = clean(cols[2]); const furigana = clean(cols[3]);
-                    const reading = clean(cols[4]); 
-                    const meaningEn = clean(cols[5]); const meaningId = clean(cols[6]);
-
-                    if (!front || (!meaningEn && !meaningId)) continue;
-
-                    let targetSec = sections.find(s => s.name === secName);
-                    if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
-
-                    let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
-                    if (!targetDeck) { 
-                        targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
-                        decks.push(targetDeck); 
-                        cards[targetDeck.id] = []; 
-                        skippedCards[targetDeck.id] = [];
-                        gotItCards[targetDeck.id] = [];
+                try {
+                    const rows = e.target.result.split(/\r?\n/).filter(row => row.trim() !== '');
+                    if (rows.length <= 1) {
+                        alert("File CSV kosong atau tidak valid.");
+                        return;
                     }
 
-                    cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
+                    // Auto-detect if CSV uses Comma (,) or Semicolon (;)
+                    const separator = rows[0].includes(';') && !rows[0].includes(',') ? ';' : ',';
+
+                    for (let i = 1; i < rows.length; i++) {
+                        const cols = parseCSVLine(rows[i], separator);
+                        if (cols.length < 3) continue; 
+
+                        const secName = cols[0] || "Imported"; 
+                        const deckName = cols[1] || "Imported Deck";
+                        const front = cols[2] || ""; 
+                        const furigana = cols[3] || "";
+                        const reading = cols[4] || ""; 
+                        
+                        let meaningEn = '';
+                        let meaningId = '';
+
+                        // Support backward compatibility for old 6-column format or new 7-column
+                        if (cols.length === 6) { 
+                            meaningEn = cols[5];
+                        } else if (cols.length >= 7) { 
+                            meaningEn = cols[5];
+                            meaningId = cols[6];
+                        }
+
+                        if (!front) continue; 
+
+                        let targetSec = sections.find(s => s.name === secName);
+                        if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
+
+                        let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
+                        if (!targetDeck) { 
+                            targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
+                            decks.push(targetDeck); 
+                        }
+
+                        // Initialize arrays if they don't exist
+                        if (!cards[targetDeck.id]) cards[targetDeck.id] = [];
+                        if (!skippedCards[targetDeck.id]) skippedCards[targetDeck.id] = [];
+                        if (!gotItCards[targetDeck.id]) gotItCards[targetDeck.id] = [];
+
+                        // IMPORT EXCLUSIVELY TO MAIN DECK (cards object)
+                        cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
+                    }
+                    saveData(); 
+                    renderHome(); 
+                    if(currentSectionId) renderSection();
+                    if(currentDeckId) renderDeck();
+                    alert("Import file CSV selesai! (Data dimasukkan ke Main Deck)"); 
+                } catch(error) {
+                    alert("Error saat membaca file: " + error.message);
                 }
-                saveData(); renderHome(); alert("Import complete!"); event.target.value = ''; closeModal('settingsModal');
+                event.target.value = ''; 
+                closeModal('settingsModal');
             };
             reader.readAsText(file);
         }
