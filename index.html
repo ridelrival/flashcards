@@ -1153,6 +1153,7 @@
 
         function endStudy() { navigateTo(returnViewId); }
 
+        // --- 100% REVERTED CSV LOGIC ---
         function saveData() {
             localStorage.setItem('flashcard_sections', JSON.stringify(sections));
             localStorage.setItem('flashcard_decks', JSON.stringify(decks));
@@ -1162,26 +1163,16 @@
         }
 
         function exportToCSV() {
-            let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID,Category\n";
+            let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID\n";
             const escapeCSV = (text) => `"${(text || '').replace(/"/g, '""')}"`;
 
             sections.forEach(sec => {
                 decks.filter(d => d.sectionId === sec.id).forEach(deck => {
-                    
-                    const cats = [
-                        { name: 'main', dict: cards },
-                        { name: 'skipped', dict: skippedCards },
-                        { name: 'gotIt', dict: gotItCards }
-                    ];
-
-                    cats.forEach(category => {
-                        (category.dict[deck.id] || []).forEach(c => {
-                            const en = c.meaningEn || c.meaning || '';
-                            const id = c.meaningId || '';
-                            csvContent += `${escapeCSV(sec.name)},${escapeCSV(deck.name)},${escapeCSV(c.front)},${escapeCSV(c.furigana)},${escapeCSV(c.reading)},${escapeCSV(en)},${escapeCSV(id)},${escapeCSV(category.name)}\n`;
-                        });
+                    (cards[deck.id] || []).forEach(c => {
+                        const en = c.meaningEn || c.meaning || '';
+                        const id = c.meaningId || '';
+                        csvContent += `${escapeCSV(sec.name)},${escapeCSV(deck.name)},${escapeCSV(c.front)},${escapeCSV(c.furigana)},${escapeCSV(c.reading)},${escapeCSV(en)},${escapeCSV(id)}\n`;
                     });
-
                 });
             });
 
@@ -1206,7 +1197,6 @@
                     const front = clean(cols[2]); const furigana = clean(cols[3]);
                     const reading = clean(cols[4]); 
                     const meaningEn = clean(cols[5]); const meaningId = clean(cols[6]);
-                    const category = cols.length >= 8 ? clean(cols[7]) : 'main';
 
                     if (!front || (!meaningEn && !meaningId)) continue;
 
@@ -1222,11 +1212,7 @@
                         gotItCards[targetDeck.id] = [];
                     }
 
-                    let targetArr = cards;
-                    if (category === 'skipped') targetArr = skippedCards;
-                    if (category === 'gotIt') targetArr = gotItCards;
-
-                    targetArr[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
+                    cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
                 }
                 saveData(); renderHome(); alert("Import complete!"); event.target.value = ''; closeModal('settingsModal');
             };
