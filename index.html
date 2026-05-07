@@ -168,7 +168,7 @@
     <div id="homeView" class="view active">
         <div class="header">
             <p style="color: var(--text-muted); font-weight: 500;">Learn with</p>
-            <h1>Flash Cards</h1>
+            <h1>Flashcards</h1>
         </div>
         
         <div id="createSectionArea" style="display: none; margin-bottom: 20px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
@@ -498,6 +498,14 @@
         }
         function isCardInArray(card, arr) {
             return arr.some(c => isCardEqual(c, card));
+        }
+
+        function loadDataFromStorage() {
+            sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
+            decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
+            cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
+            skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {};
+            gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {};
         }
 
         function navigateTo(viewId) {
@@ -1169,19 +1177,6 @@
             link.download = "flashcards_backup.csv"; link.click(); closeModal('settingsModal');
         }
 
-        function parseCSVLine(text, separator) {
-            let ret = [], col = '', inQuote = false;
-            for (let i = 0; i < text.length; i++) {
-                let c = text[i];
-                if (c === '"' && text[i+1] === '"') { col += '"'; i++; } // Escaped quote
-                else if (c === '"') { inQuote = !inQuote; }
-                else if (c === separator && !inQuote) { ret.push(col.trim()); col = ''; }
-                else { col += c; }
-            }
-            ret.push(col.trim());
-            return ret;
-        }
-
         function importFromCSV(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1194,28 +1189,27 @@
                         return;
                     }
 
-                    // Auto-detect if CSV uses Comma (,) or Semicolon (;)
-                    const separator = rows[0].includes(';') && !rows[0].includes(',') ? ';' : ',';
-
+                    // Strict comma split using regex to ignore commas inside quotes
                     for (let i = 1; i < rows.length; i++) {
-                        const cols = parseCSVLine(rows[i], separator);
-                        if (cols.length < 3) continue; 
+                        const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                        if (!cols || cols.length < 3) continue; 
 
-                        const secName = cols[0] || "Imported"; 
-                        const deckName = cols[1] || "Imported Deck";
-                        const front = cols[2] || ""; 
-                        const furigana = cols[3] || "";
-                        const reading = cols[4] || ""; 
+                        const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+                        
+                        const secName = clean(cols[0]) || "Imported"; 
+                        const deckName = clean(cols[1]) || "Imported Deck";
+                        const front = clean(cols[2]) || ""; 
+                        const furigana = clean(cols[3]) || "";
+                        const reading = clean(cols[4]) || ""; 
                         
                         let meaningEn = '';
                         let meaningId = '';
 
-                        // Support backward compatibility for old 6-column format or new 7-column
                         if (cols.length === 6) { 
-                            meaningEn = cols[5];
+                            meaningEn = clean(cols[5]);
                         } else if (cols.length >= 7) { 
-                            meaningEn = cols[5];
-                            meaningId = cols[6];
+                            meaningEn = clean(cols[5]);
+                            meaningId = clean(cols[6]);
                         }
 
                         if (!front) continue; 
@@ -1229,7 +1223,6 @@
                             decks.push(targetDeck); 
                         }
 
-                        // Initialize arrays if they don't exist
                         if (!cards[targetDeck.id]) cards[targetDeck.id] = [];
                         if (!skippedCards[targetDeck.id]) skippedCards[targetDeck.id] = [];
                         if (!gotItCards[targetDeck.id]) gotItCards[targetDeck.id] = [];
@@ -1251,8 +1244,13 @@
             reader.readAsText(file);
         }
 
+        // DYNAMIC DOM LOAD (Fixes the blank screen on refresh issue)
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDataFromStorage();
+            renderHome();
+        });
+
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
-        renderHome();
     </script>
 </body>
 </html>
