@@ -86,10 +86,12 @@
         .card-item-reading { color: var(--text-muted); font-size: 16px; text-align: center; margin-bottom: 4px; }
         .card-item-meaning { font-size: 18px; text-align: center; color: var(--text-main); font-weight: 500; }
         
-        .card-item-delete { position: absolute; top: 12px; right: 12px; background: transparent; border: none; cursor: pointer; color: var(--danger); padding: 4px; border-radius: 4px; }
-        .card-item-delete:hover { background-color: #fee2e2; }
-        
         hr { border: 0; height: 1px; background: var(--border); margin: 12px 0; }
+
+        /* Tabs inside Deck View */
+        .tab-container { display: flex; gap: 8px; margin-bottom: 16px; background: var(--border); padding: 4px; border-radius: 8px; }
+        .tab-btn { flex: 1; background: transparent; color: var(--text-muted); border: none; padding: 8px 4px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 13px;}
+        .tab-btn.active { background: var(--card-bg); color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
         /* Live Preview Box */
         .preview-box { background: var(--bg-color); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
@@ -125,13 +127,13 @@
         .meaning-text { font-size: 20px; font-weight: normal; margin-bottom: 16px; } 
         .card-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
 
-        /* Ruby (Furigana) Styling */
+        /* FIXED Ruby (Furigana) Styling */
         ruby { ruby-align: center; }
         rt { font-size: 0.45em; color: var(--text-muted); opacity: 0; transition: opacity 0.2s; font-weight: normal; padding-bottom: 4px; }
         .show-furigana rt { opacity: 1; }
         
         /* Layout Utilities */
-        .action-row { display: flex; gap: 12px; justify-content: center; width: 100%; }
+        .action-row { display: flex; gap: 8px; justify-content: center; width: 100%; }
         .action-column { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
         .nav-back { color: var(--text-muted); cursor: pointer; text-decoration: none; font-weight: 600; font-size: 20px;}
         .hint-text { text-align: center; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; margin-top: -12px;}
@@ -159,10 +161,11 @@
 
 <div class="app-container">
 
+    <!-- HOME VIEW (Sections) -->
     <div id="homeView" class="view active">
         <div class="header">
             <p style="color: var(--text-muted); font-weight: 500;">Learn with</p>
-            <h1>Flash Cards</h1>
+            <h1>Flashcards</h1>
         </div>
         
         <div id="createSectionArea" style="display: none; margin-bottom: 20px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
@@ -178,6 +181,7 @@
         <button class="fab" onclick="showCreateSection()">+</button>
     </div>
 
+    <!-- SECTION VIEW (Decks) -->
     <div id="sectionView" class="view">
         <div class="deck-header" style="align-items: center;">
             <div class="deck-header-left">
@@ -188,6 +192,7 @@
         </div>
         <hr style="margin-bottom: 24px;">
         
+        <!-- STUDY ALL CARDS IN SECTION -->
         <div style="display: flex; gap: 12px; margin-bottom: 24px;">
             <button onclick="startSectionStudy()" style="flex: 4; background-color: black; color: white;">Study All</button>
             <button onclick="startSectionStudy(true)" class="secondary" style="flex: 1; padding: 0;" title="Shuffle All">
@@ -214,6 +219,7 @@
         <button class="fab fab-secondary" onclick="openSettings()">⚙️</button>
     </div>
 
+    <!-- DECK DETAIL VIEW (Cards) -->
     <div id="deckView" class="view">
         <div class="deck-header">
             <div class="deck-header-left">
@@ -227,7 +233,7 @@
         </div>
         <hr style="margin-bottom: 24px;">
         
-        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
             <button onclick="startStudy()" style="flex: 4; background-color: black; color: white;">Start Study</button>
             <button onclick="startStudy(true)" class="secondary" style="flex: 1; padding: 0;" title="Shuffle Deck">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -240,11 +246,19 @@
             </button>
         </div>
 
+        <!-- NEW: Sub-category Tabs -->
+        <div class="tab-container">
+            <button id="tab_main" class="tab-btn active" onclick="switchDeckTab('main')">Main (0)</button>
+            <button id="tab_skipped" class="tab-btn" onclick="switchDeckTab('skipped')">Skipped (0)</button>
+            <button id="tab_gotIt" class="tab-btn" onclick="switchDeckTab('gotIt')">Got It (0)</button>
+        </div>
+
         <p class="hint-text" style="margin-top: 0px; margin-bottom: 16px;">Press and hold a card for 0.5s to edit or delete</p>
 
         <ul class="deck-list" id="cardList"></ul>
     </div>
 
+    <!-- ADD/EDIT CARD VIEW -->
     <div id="addCardView" class="view">
         <div class="deck-header" style="align-items: center; margin-bottom: 24px;">
             <div class="deck-header-left">
@@ -253,6 +267,7 @@
             </div>
         </div>
 
+        <!-- Live Preview -->
         <div class="preview-box">
             <div class="preview-label" style="margin-bottom: 12px;">PREVIEW</div>
             
@@ -285,6 +300,7 @@
         <input type="text" id="cardFurigana" placeholder="e.g べん きょう" oninput="updatePreview()">
         <div class="helper-text">Write one reading per kanji, separated by a space. Example: 勉強する → べん きょう</div>
         
+        <!-- Dual Meaning Inputs -->
         <label>Meaning (English)</label>
         <textarea id="cardMeaningEn" rows="2" placeholder="Enter English meaning . . ." oninput="updatePreview()"></textarea>
 
@@ -297,6 +313,7 @@
         </div>
     </div>
 
+    <!-- STUDY VIEW -->
     <div id="studyView" class="view">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; width: 100%;">
             <a class="nav-back" onclick="endStudy()" style="margin: 0; display: inline-block;">←</a>
@@ -305,13 +322,16 @@
         </div>
         
         <div class="card-container">
+            <!-- Main Flippable Card -->
             <div class="card" id="studyCard" onclick="flipCard()">
+                <!-- FRONT OF CARD -->
                 <div class="card-face">
                     <div style="display: inline-flex; flex-direction: column; align-items: center; max-width: 100%;">
                         <div class="front-text" id="studyFront" style="display: inline-block; font-weight: normal;">Word</div>
                         <div style="width: 100%; height: 2px; background: var(--border); margin-top: 12px; border-radius: 1px;"></div>
                     </div>
                 </div>
+                <!-- BACK OF CARD -->
                 <div class="card-face card-back">
                     <div class="card-label">WORD</div>
                     <div class="back-kanji-text" id="studyBackWord">Word</div>
@@ -349,10 +369,13 @@
 
         <div class="action-row" style="width: 100%;">
             <button class="danger-outline" style="flex: 1;" onclick="nextCard('skip')">Skip ✗</button>
+            <!-- NEW: Remove from Sub Deck Button -->
+            <button id="btnRemoveSub" class="secondary" style="flex: 1; display: none; font-size: 13px; padding: 12px 4px;" onclick="removeAndMoveToGotIt()">Remove ↪ Got It</button>
             <button class="success-outline" style="flex: 1;" onclick="nextCard('done')">Got it ✓</button>
         </div>
     </div>
 
+    <!-- RESULTS VIEW -->
     <div id="resultsView" class="view">
         <div class="deck-header" style="justify-content: center; margin-bottom: 24px;">
             <h1>Study Complete!</h1>
@@ -378,6 +401,7 @@
         <button id="resultsBackButton" onclick="endStudy()" style="width: 100%; padding: 16px;">Back to Deck</button>
     </div>
 
+    <!-- SETTINGS MODAL -->
     <div id="settingsModal" class="modal-overlay" onclick="closeModal('settingsModal', event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-modal" onclick="closeModal('settingsModal', event)">✕</button>
@@ -391,6 +415,7 @@
         </div>
     </div>
 
+    <!-- ACTION (LONG PRESS) MODAL -->
     <div id="actionModal" class="modal-overlay" onclick="closeModal('actionModal', event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <button class="close-modal" onclick="closeModal('actionModal', event)">✕</button>
@@ -409,14 +434,19 @@
 
 </div>
 
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Data Structure - Starts completely empty now
+        // Data Structure with Categories
         let sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
         let decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
         let cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
         
+        let skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {};
+        let gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {};
+        
         let currentSectionId = null;
         let currentDeckId = null;
+        let currentStudyCategory = 'main'; // 'main', 'skipped', 'gotIt'
         let editingCardIndex = null;
         
         let originalStudyOrder = [];
@@ -443,6 +473,14 @@
                 [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
             }
             return array;
+        }
+
+        // --- HELPER TO PREVENT DUPLICATES ---
+        function isCardEqual(c1, c2) {
+            return c1.front === c2.front && c1.reading === c2.reading && c1.meaningEn === c2.meaningEn && c1.meaningId === c2.meaningId;
+        }
+        function isCardInArray(card, arr) {
+            return arr.some(c => isCardEqual(c, card));
         }
 
         function navigateTo(viewId) {
@@ -497,13 +535,14 @@
                 if (newName && newName.trim()) { decks[deckIndex].name = newName.trim(); saveData(); renderSection(); }
             } else if (activeActionType === 'card') {
                 editingCardIndex = activeActionId; 
-                const card = cards[currentDeckId][editingCardIndex];
+                
+                let targetArr = currentStudyCategory === 'main' ? cards : (currentStudyCategory === 'skipped' ? skippedCards : gotItCards);
+                const card = targetArr[currentDeckId][editingCardIndex];
                 
                 document.getElementById('cardFront').value = card.front;
                 document.getElementById('cardFurigana').value = card.furigana || '';
                 document.getElementById('cardReading').value = card.reading || '';
                 
-                // Fallback for old cards that only had 'meaning'
                 document.getElementById('cardMeaningEn').value = card.meaningEn || card.meaning || '';
                 document.getElementById('cardMeaningId').value = card.meaningId || '';
                 
@@ -520,7 +559,11 @@
             if(activeActionType === 'section') {
                 if (confirm("⚠️ Delete this section and all its decks/cards?")) {
                     sections = sections.filter(s => s.id !== activeActionId);
-                    decks.filter(d => d.sectionId === activeActionId).forEach(deck => { delete cards[deck.id]; });
+                    decks.filter(d => d.sectionId === activeActionId).forEach(deck => { 
+                        delete cards[deck.id]; 
+                        delete skippedCards[deck.id]; 
+                        delete gotItCards[deck.id]; 
+                    });
                     decks = decks.filter(d => d.sectionId !== activeActionId);
                     saveData(); renderHome();
                 }
@@ -528,11 +571,14 @@
                 if (confirm("⚠️ Delete this deck and all its cards?")) {
                     decks = decks.filter(d => d.id !== activeActionId);
                     delete cards[activeActionId];
+                    delete skippedCards[activeActionId];
+                    delete gotItCards[activeActionId];
                     saveData(); renderSection();
                 }
             } else if (activeActionType === 'card') {
                 if (confirm("⚠️ Delete this card?")) {
-                    cards[currentDeckId].splice(activeActionId, 1);
+                    let targetArr = currentStudyCategory === 'main' ? cards : (currentStudyCategory === 'skipped' ? skippedCards : gotItCards);
+                    targetArr[currentDeckId].splice(activeActionId, 1);
                     saveData(); renderDeck();
                 }
             }
@@ -582,11 +628,25 @@
             const name = document.getElementById('newDeckName').value.trim();
             if (!name) return;
             const newDeck = { id: 'd_' + Date.now().toString(), sectionId: currentSectionId, name: name };
-            decks.push(newDeck); cards[newDeck.id] = [];
+            decks.push(newDeck); 
+            cards[newDeck.id] = [];
+            skippedCards[newDeck.id] = [];
+            gotItCards[newDeck.id] = [];
             saveData(); hideCreateDeck(); renderSection();
         }
 
-        window.goToDeck = function(id) { currentDeckId = id; navigateTo('deckView'); };
+        window.goToDeck = function(id) { 
+            currentDeckId = id; 
+            currentStudyCategory = 'main'; // default to main tab
+            navigateTo('deckView'); 
+        };
+        
+        window.switchDeckTab = function(category) {
+            currentStudyCategory = category;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab_' + category).classList.add('active');
+            renderDeck();
+        };
 
         function renderSection() {
             const sec = sections.find(s => s.id === currentSectionId);
@@ -615,17 +675,33 @@
 
         function renderDeck() {
             const deck = decks.find(d => d.id === currentDeckId);
-            const deckCards = cards[currentDeckId] || [];
+            
+            // Update Tab Counts
+            const mainArr = cards[currentDeckId] || [];
+            const skipArr = skippedCards[currentDeckId] || [];
+            const gotArr = gotItCards[currentDeckId] || [];
+            
+            document.getElementById('tab_main').innerText = `Main (${mainArr.length})`;
+            document.getElementById('tab_skipped').innerText = `Skipped (${skipArr.length})`;
+            document.getElementById('tab_gotIt').innerText = `Got It (${gotArr.length})`;
+            
+            // Make sure UI highlights the right tab
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab_' + currentStudyCategory).classList.add('active');
+
+            let activeArr = mainArr;
+            if (currentStudyCategory === 'skipped') activeArr = skipArr;
+            if (currentStudyCategory === 'gotIt') activeArr = gotArr;
             
             document.getElementById('currentDeckTitle').innerText = deck.name;
-            document.getElementById('currentDeckCount').innerText = `${deckCards.length} cards`;
+            document.getElementById('currentDeckCount').innerText = `${activeArr.length} cards in ${currentStudyCategory}`;
             
             const list = document.getElementById('cardList');
             list.innerHTML = '';
             
-            if(deckCards.length === 0) list.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No cards in this deck.</p>';
+            if(activeArr.length === 0) list.innerHTML = '<p style="color: var(--text-muted); text-align: center; margin-top: 20px;">No cards here.</p>';
 
-            deckCards.forEach((card, index) => {
+            activeArr.forEach((card, index) => {
                 const li = document.createElement('li');
                 li.className = 'card-item';
                 li.setAttribute('oncontextmenu', 'return false;');
@@ -671,6 +747,9 @@
 
         function navigateToAddCard() {
             editingCardIndex = null;
+            // Force save to main deck if adding new
+            currentStudyCategory = 'main'; 
+            
             document.getElementById('addCardTitle').innerText = "Add Card";
             document.getElementById('btnSaveAnother').style.display = 'block'; 
             
@@ -687,8 +766,8 @@
             const front = document.getElementById('cardFront').value.trim() || 'WORD';
             const furigana = document.getElementById('cardFurigana').value.trim();
             const reading = document.getElementById('cardReading').value.trim() || 'READING';
-            const meaningEn = document.getElementById('cardMeaningEn').value.trim() || 'MEANING EN';
-            const meaningId = document.getElementById('cardMeaningId').value.trim() || 'MEANING ID';
+            const meaningEn = document.getElementById('cardMeaningEn').value.trim() || 'meaning en';
+            const meaningId = document.getElementById('cardMeaningId').value.trim() || 'meaning id';
             
             document.getElementById('previewWord').classList.add('show-furigana');
             document.getElementById('previewWord').innerHTML = generateRubyHTML(front, furigana);
@@ -706,12 +785,17 @@
             const meaningId = document.getElementById('cardMeaningId').value.trim();
             
             if (!front || (!meaningEn && !meaningId)) { alert("Word and at least one Meaning are required!"); return; }
-            if (!cards[currentDeckId]) cards[currentDeckId] = [];
+            
+            let targetArr = cards;
+            if (currentStudyCategory === 'skipped') targetArr = skippedCards;
+            if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
+
+            if (!targetArr[currentDeckId]) targetArr[currentDeckId] = [];
             
             if (editingCardIndex !== null) {
-                cards[currentDeckId][editingCardIndex] = { front, furigana, reading, meaningEn, meaningId };
+                targetArr[currentDeckId][editingCardIndex] = { front, furigana, reading, meaningEn, meaningId };
             } else {
-                cards[currentDeckId].push({ front, furigana, reading, meaningEn, meaningId });
+                targetArr[currentDeckId].push({ front, furigana, reading, meaningEn, meaningId });
             }
             
             saveData();
@@ -723,15 +807,18 @@
             }
         }
 
-        // --- STUDY SECTION (ALL DECKS) ---
+        // --- STUDY SECTION (ALL MAIN DECKS) ---
         function startSectionStudy(initShuffle = false) {
             returnViewId = 'sectionView';
+            currentStudyCategory = 'main'; // Section study only studies main cards
             originalStudyOrder = [];
             
             const sectionDecks = decks.filter(d => d.sectionId === currentSectionId);
             sectionDecks.forEach(deck => {
                 if (cards[deck.id]) {
-                    originalStudyOrder = originalStudyOrder.concat(cards[deck.id]);
+                    // Need to tag the deckId so we know where to save skipped/gotIt
+                    const taggedCards = cards[deck.id].map(c => ({...c, _deckId: deck.id}));
+                    originalStudyOrder = originalStudyOrder.concat(taggedCards);
                 }
             });
 
@@ -745,6 +832,9 @@
             if (isShuffled) studyCards = shuffleArray(studyCards);
             document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
+            // Hide remove button for main study
+            document.getElementById('btnRemoveSub').style.display = 'none';
+
             showFurigana = false;
             document.getElementById('furiganaToggle').className = 'tool-icon';
             document.getElementById('studyCard').classList.remove('show-furigana');
@@ -757,8 +847,13 @@
         // --- STUDY DECK ---
         function startStudy(initShuffle = false) {
             returnViewId = 'deckView';
-            originalStudyOrder = [...(cards[currentDeckId] || [])];
-            if (originalStudyOrder.length === 0) return alert("Add some cards first!");
+            
+            let sourceArr = cards[currentDeckId] || [];
+            if (currentStudyCategory === 'skipped') sourceArr = skippedCards[currentDeckId] || [];
+            if (currentStudyCategory === 'gotIt') sourceArr = gotItCards[currentDeckId] || [];
+
+            originalStudyOrder = [...sourceArr];
+            if (originalStudyOrder.length === 0) return alert(`No cards in ${currentStudyCategory}!`);
             
             studyCards = [...originalStudyOrder];
             isShuffled = initShuffle;
@@ -768,6 +863,13 @@
             if (isShuffled) studyCards = shuffleArray(studyCards);
             document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
+            // Show/Hide Remove button based on category
+            if (currentStudyCategory === 'main') {
+                document.getElementById('btnRemoveSub').style.display = 'none';
+            } else {
+                document.getElementById('btnRemoveSub').style.display = 'block';
+            }
+
             showFurigana = false;
             document.getElementById('furiganaToggle').className = 'tool-icon';
             document.getElementById('studyCard').classList.remove('show-furigana');
@@ -819,11 +921,66 @@
 
         function flipCard() { document.getElementById('studyCard').classList.toggle('is-flipped'); }
 
+        // Logic Rule 1 & 2
         function nextCard(result) {
+            const currentCard = studyCards[currentStudyIndex];
+            // Resolve deckId (handles section study which spans multiple decks)
+            const targetDeckId = currentCard._deckId || currentDeckId; 
+
+            if (currentStudyCategory === 'main') {
+                const cleanCard = {...currentCard};
+                delete cleanCard._deckId; // Clean up tag before saving
+
+                if (result === 'skip') {
+                    if (!skippedCards[targetDeckId]) skippedCards[targetDeckId] = [];
+                    if (!isCardInArray(cleanCard, skippedCards[targetDeckId])) {
+                        skippedCards[targetDeckId].push(cleanCard);
+                    }
+                } else if (result === 'done') {
+                    if (!gotItCards[targetDeckId]) gotItCards[targetDeckId] = [];
+                    if (!isCardInArray(cleanCard, gotItCards[targetDeckId])) {
+                        gotItCards[targetDeckId].push(cleanCard);
+                    }
+                }
+                saveData();
+            }
+
             document.getElementById('studyCard').classList.remove('is-flipped');
-            
             if (result === 'done') studyGotIt++;
             if (result === 'skip') studySkipped++;
+
+            setTimeout(() => {
+                currentStudyIndex++;
+                if (currentStudyIndex >= studyCards.length) {
+                    showResults();
+                } else {
+                    loadStudyCard();
+                }
+            }, 300);
+        }
+
+        // Logic Rule 3 (Remove from Sub Deck)
+        window.removeAndMoveToGotIt = function() {
+            const currentCard = studyCards[currentStudyIndex];
+            
+            if (!gotItCards[currentDeckId]) gotItCards[currentDeckId] = [];
+
+            if (currentStudyCategory === 'skipped') {
+                // Delete from skipped
+                skippedCards[currentDeckId] = skippedCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
+                // Add to got it (if not exist)
+                if (!isCardInArray(currentCard, gotItCards[currentDeckId])) {
+                    gotItCards[currentDeckId].push({...currentCard});
+                }
+            } else if (currentStudyCategory === 'gotIt') {
+                // Already in got it, just delete it
+                gotItCards[currentDeckId] = gotItCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
+            }
+
+            saveData();
+            
+            document.getElementById('studyCard').classList.remove('is-flipped');
+            studyGotIt++; // Count as success since moving to got it
 
             setTimeout(() => {
                 currentStudyIndex++;
@@ -838,7 +995,7 @@
         function showResults() {
             if (returnViewId === 'deckView') {
                 const deck = decks.find(d => d.id === currentDeckId);
-                document.getElementById('resultsDeckName').innerText = deck.name;
+                document.getElementById('resultsDeckName').innerText = deck.name + ` (${currentStudyCategory})`;
                 document.getElementById('resultsBackButton').innerText = "Back to Deck";
             } else {
                 const sec = sections.find(s => s.id === currentSectionId);
@@ -857,19 +1014,31 @@
             localStorage.setItem('flashcard_sections', JSON.stringify(sections));
             localStorage.setItem('flashcard_decks', JSON.stringify(decks));
             localStorage.setItem('flashcard_cards', JSON.stringify(cards));
+            localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
+            localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
         }
 
         function exportToCSV() {
-            let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID\n";
+            let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID,Category\n";
             const escapeCSV = (text) => `"${(text || '').replace(/"/g, '""')}"`;
 
             sections.forEach(sec => {
                 decks.filter(d => d.sectionId === sec.id).forEach(deck => {
-                    (cards[deck.id] || []).forEach(c => {
-                        const en = c.meaningEn || c.meaning || '';
-                        const id = c.meaningId || '';
-                        csvContent += `${escapeCSV(sec.name)},${escapeCSV(deck.name)},${escapeCSV(c.front)},${escapeCSV(c.furigana)},${escapeCSV(c.reading)},${escapeCSV(en)},${escapeCSV(id)}\n`;
+                    
+                    const cats = [
+                        { name: 'main', dict: cards },
+                        { name: 'skipped', dict: skippedCards },
+                        { name: 'gotIt', dict: gotItCards }
+                    ];
+
+                    cats.forEach(category => {
+                        (category.dict[deck.id] || []).forEach(c => {
+                            const en = c.meaningEn || c.meaning || '';
+                            const id = c.meaningId || '';
+                            csvContent += `${escapeCSV(sec.name)},${escapeCSV(deck.name)},${escapeCSV(c.front)},${escapeCSV(c.furigana)},${escapeCSV(c.reading)},${escapeCSV(en)},${escapeCSV(id)},${escapeCSV(category.name)}\n`;
+                        });
                     });
+
                 });
             });
 
@@ -880,64 +1049,47 @@
         }
 
         function importFromCSV(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        // Menggunakan \r?\n agar mendukung format file dari Windows maupun Mac
-        const rows = e.target.result.split(/\r?\n/).filter(row => row.trim() !== '');
-        
-        for (let i = 1; i < rows.length; i++) {
-            // Pemisah koma yang aman: mengabaikan koma di dalam tanda kutip ganda
-            // dan tetap mempertahankan kolom yang kosong (seperti ,,)
-            const cols = rows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-            
-            // Pengecekan tetap 7 karena format kita punya 7 kolom utama
-            if (!cols || cols.length < 7) continue;
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
+                for (let i = 1; i < rows.length; i++) {
+                    const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    if (!cols || cols.length < 7) continue; // Category is 8th but optional
 
-            // Membersihkan tanda kutip dan spasi berlebih
-            const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
-            
-            const secName = clean(cols[0]) || "Imported"; 
-            const deckName = clean(cols[1]) || "Imported Deck";
-            const front = clean(cols[2]); 
-            const furigana = clean(cols[3]);
-            const reading = clean(cols[4]); 
-            const meaningEn = clean(cols[5]); 
-            const meaningId = clean(cols[6]);
+                    const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
+                    const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
+                    const front = clean(cols[2]); const furigana = clean(cols[3]);
+                    const reading = clean(cols[4]); 
+                    const meaningEn = clean(cols[5]); const meaningId = clean(cols[6]);
+                    const category = cols.length >= 8 ? clean(cols[7]) : 'main';
 
-            // Jika kata utama (front) kosong, atau kedua arti kosong, lewati
-            if (!front || (!meaningEn && !meaningId)) continue;
+                    if (!front || (!meaningEn && !meaningId)) continue;
 
-            // Masukkan ke database lokal
-            let targetSec = sections.find(s => s.name === secName);
-            if (!targetSec) { 
-                targetSec = { id: 's_' + Date.now() + Math.random(), name: secName }; 
-                sections.push(targetSec); 
-            }
+                    let targetSec = sections.find(s => s.name === secName);
+                    if (!targetSec) { targetSec = { id: 's_' + Date.now()+Math.random(), name: secName }; sections.push(targetSec); }
 
-            let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
-            if (!targetDeck) { 
-                targetDeck = { id: 'd_' + Date.now() + Math.random(), sectionId: targetSec.id, name: deckName }; 
-                decks.push(targetDeck); 
-                cards[targetDeck.id] = []; 
-            }
+                    let targetDeck = decks.find(d => d.name === deckName && d.sectionId === targetSec.id);
+                    if (!targetDeck) { 
+                        targetDeck = { id: 'd_' + Date.now()+Math.random(), sectionId: targetSec.id, name: deckName }; 
+                        decks.push(targetDeck); 
+                        cards[targetDeck.id] = []; 
+                        skippedCards[targetDeck.id] = [];
+                        gotItCards[targetDeck.id] = [];
+                    }
 
-            cards[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
+                    let targetArr = cards;
+                    if (category === 'skipped') targetArr = skippedCards;
+                    if (category === 'gotIt') targetArr = gotItCards;
+
+                    targetArr[targetDeck.id].push({ front, furigana, reading, meaningEn, meaningId });
+                }
+                saveData(); renderHome(); alert("Import complete!"); event.target.value = ''; closeModal('settingsModal');
+            };
+            reader.readAsText(file);
         }
-        
-        saveData(); 
-        renderHome(); 
-        alert("Import complete! 🎉"); 
-        
-        // Reset input agar bisa mengimpor file yang sama lagi jika diperlukan
-        event.target.value = ''; 
-        closeModal('settingsModal', event);
-    };
-    reader.readAsText(file);
-}
-        
+
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
         renderHome();
     </script>
