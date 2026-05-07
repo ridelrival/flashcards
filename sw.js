@@ -1,28 +1,36 @@
-const CACHE_NAME = 'flashcard-v8';
+const CACHE_NAME = 'flashcard-v9-stable';
 const urlsToCache = [
   './',
   './index.html',
-  './manifest.json',
-  './icon.png' 
+  './manifest.json'
 ];
 
-// Install the service worker and cache the files
+// Install & Force Update
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Serve the cached files when offline
+// Activate & Destroy Old Caches
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName); // HAPUS CACHE LAMA
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Network First, Fallback to Cache
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return the cached version if found, otherwise fetch from the network
-        return response || fetch(event.request);
-      })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
