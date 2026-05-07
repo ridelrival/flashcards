@@ -81,12 +81,16 @@
         .card-arrow { padding: 8px; color: var(--text-muted); font-weight: bold; pointer-events: none; }
 
         /* Card Items in Deck View */
-        .card-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; }
-        .card-item-kanji { font-size: 28px; font-weight: bold; text-align: center; color: var(--text-main); line-height: 1.5; }
-        .card-item-reading { color: var(--text-muted); font-size: 16px; text-align: center; margin-bottom: 4px; }
-        .card-item-meaning { font-size: 18px; text-align: center; color: var(--text-main); font-weight: 500; }
+        .card-item { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; position: relative; cursor: pointer; transition: all 0.2s;}
+        .card-item.selected { border-color: var(--primary); background-color: #f1f5f9; }
         
-        hr { border: 0; height: 1px; background: var(--border); margin: 12px 0; }
+        .card-checkbox { position: absolute; top: 16px; left: 16px; width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; pointer-events: none; }
+        
+        .card-item-kanji { font-size: 28px; font-weight: bold; text-align: center; color: var(--text-main); line-height: 1.5; pointer-events: none; }
+        .card-item-reading { color: var(--text-muted); font-size: 16px; text-align: center; margin-bottom: 4px; pointer-events: none; }
+        .card-item-meaning { font-size: 16px; text-align: center; color: var(--text-main); font-weight: 500; pointer-events: none; }
+        
+        hr { border: 0; height: 1px; background: var(--border); margin: 12px 0; pointer-events: none; }
 
         /* Tabs inside Deck View */
         .tab-container { display: flex; gap: 8px; margin-bottom: 16px; background: var(--border); padding: 4px; border-radius: 8px; }
@@ -233,7 +237,8 @@
         </div>
         <hr style="margin-bottom: 24px;">
         
-        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <!-- Standard Study Buttons -->
+        <div id="studyButtonGroup" style="display: flex; gap: 12px; margin-bottom: 16px;">
             <button onclick="startStudy()" style="flex: 4; background-color: black; color: white;">Start Study</button>
             <button onclick="startStudy(true)" class="secondary" style="flex: 1; padding: 0;" title="Shuffle Deck">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -246,14 +251,36 @@
             </button>
         </div>
 
-        <!-- NEW: Sub-category Tabs -->
-        <div class="tab-container">
-            <button id="tab_main" class="tab-btn active" onclick="switchDeckTab('main')">Main (0)</button>
-            <button id="tab_skipped" class="tab-btn" onclick="switchDeckTab('skipped')">Skipped (0)</button>
-            <button id="tab_gotIt" class="tab-btn" onclick="switchDeckTab('gotIt')">Got It (0)</button>
+        <!-- SELECT MODE BAR -->
+        <div id="selectBar" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 16px; background: var(--card-bg); padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+            <span id="selectCount" style="font-weight: bold; font-size: 14px;">0 Selected</span>
+            <div style="display: flex; gap: 8px;">
+                <button class="secondary" style="padding: 6px 12px; font-size: 13px;" onclick="selectAllCards()">All</button>
+                <button class="danger-fill" style="padding: 6px 12px; font-size: 13px;" onclick="deleteSelectedCards()">Delete</button>
+                <button class="secondary" style="padding: 6px 12px; font-size: 13px;" onclick="exitSelectMode()">Done</button>
+            </div>
         </div>
 
-        <p class="hint-text" style="margin-top: 0px; margin-bottom: 16px;">Press and hold a card for 0.5s to edit or delete</p>
+        <!-- Sub-category Tabs -->
+        <div class="tab-container">
+            <button id="tab_main" class="tab-btn active" onclick="switchDeckTab('main')">Main (0)</button>
+            
+            <button id="tab_skipped" class="tab-btn" 
+                onmousedown="handleStartPress('skipped', 'tab')" 
+                ontouchstart="handleStartPress('skipped', 'tab')" 
+                onmouseup="handleEndPress()" onmouseleave="handleEndPress()"
+                ontouchend="handleEndPress()" ontouchmove="handleEndPress()"
+                onclick="handleItemClick('skipped', 'tab', event)">Skipped (0)</button>
+                
+            <button id="tab_gotIt" class="tab-btn" 
+                onmousedown="handleStartPress('gotIt', 'tab')" 
+                ontouchstart="handleStartPress('gotIt', 'tab')" 
+                onmouseup="handleEndPress()" onmouseleave="handleEndPress()"
+                ontouchend="handleEndPress()" ontouchmove="handleEndPress()"
+                onclick="handleItemClick('gotIt', 'tab', event)">Got It (0)</button>
+        </div>
+
+        <p class="hint-text" id="deckHintText" style="margin-top: 0px; margin-bottom: 16px;">Press & hold a card for 0.5s to edit or select</p>
 
         <ul class="deck-list" id="cardList"></ul>
     </div>
@@ -369,7 +396,6 @@
 
         <div class="action-row" style="width: 100%;">
             <button class="danger-outline" style="flex: 1;" onclick="nextCard('skip')">Skip ✗</button>
-            <!-- NEW: Remove from Sub Deck Button -->
             <button id="btnRemoveSub" class="secondary" style="flex: 1; display: none; font-size: 13px; padding: 12px 4px;" onclick="removeAndMoveToGotIt()">Remove ↪ Got It</button>
             <button class="success-outline" style="flex: 1;" onclick="nextCard('done')">Got it ✓</button>
         </div>
@@ -421,12 +447,16 @@
             <button class="close-modal" onclick="closeModal('actionModal', event)">✕</button>
             <h2 id="actionModalTitle" style="margin-top: 10px;">Options</h2>
             <div class="action-column">
-                <button class="secondary" onclick="triggerEdit()">✏️ Edit</button>
-                <button class="danger-fill" onclick="triggerDelete()">
+                <button id="btnActionEdit" class="secondary" onclick="triggerEdit()">✏️ Edit</button>
+                <button id="btnActionSelect" class="secondary" style="display: none;" onclick="triggerSelectMode()">☑️ Select Cards</button>
+                <button id="btnActionDelete" class="danger-fill" onclick="triggerDelete()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: text-bottom;">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                     </svg> Delete
+                </button>
+                <button id="btnActionReset" class="danger-fill" style="display: none;" onclick="triggerReset()">
+                    ⚠️ Reset Sub Deck
                 </button>
             </div>
         </div>
@@ -436,7 +466,7 @@
 
     <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Data Structure with Categories
+        // Data Structure
         let sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
         let decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
         let cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
@@ -446,7 +476,7 @@
         
         let currentSectionId = null;
         let currentDeckId = null;
-        let currentStudyCategory = 'main'; // 'main', 'skipped', 'gotIt'
+        let currentStudyCategory = 'main'; 
         let editingCardIndex = null;
         
         let originalStudyOrder = [];
@@ -463,6 +493,10 @@
         let isLongPress = false;
         let activeActionId = null;
         let activeActionType = null;
+        
+        // Multi-select state
+        let isSelectMode = false;
+        let selectedCards = new Set();
 
         // --- TRUE RANDOM SHUFFLE ALGORITHM ---
         function shuffleArray(array) {
@@ -487,6 +521,8 @@
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById(viewId).classList.add('active');
             
+            exitSelectMode(); // Clear selection when leaving view
+            
             if(viewId === 'homeView') renderHome();
             if(viewId === 'sectionView') renderSection();
             if(viewId === 'deckView') renderDeck();
@@ -495,32 +531,121 @@
         function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
         function closeModal(modalId, e) { if(e) e.stopPropagation(); document.getElementById(modalId).style.display = 'none'; }
 
-        // --- LONG PRESS LOGIC (Exactly 0.5 Seconds) ---
+        // --- LONG PRESS LOGIC (0.5 Seconds) ---
         function handleStartPress(id, type) {
             isLongPress = false;
             pressTimer = setTimeout(() => {
                 isLongPress = true;
-                openActions(id, type);
+                if (type === 'card' && isSelectMode) return; // Prevent action modal if already in Select Mode
+                openActions(id, type); // Long press opens the unified Options menu
             }, 500); 
         }
 
         function handleEndPress() { clearTimeout(pressTimer); }
 
         function handleItemClick(id, type, event) {
-            if (isLongPress) { isLongPress = false; return; }
+            if (isLongPress) { isLongPress = false; return; } // Prevent click if we just triggered a long press
+            
             if (type === 'section') goToSection(id);
             if (type === 'deck') goToDeck(id);
+            if (type === 'tab') switchDeckTab(id);
+            
+            if (type === 'card') {
+                if (isSelectMode) {
+                    toggleCardSelection(id); // Normal tap ONLY works if already in Select Mode
+                }
+                // If NOT in select mode, simple tap does absolutely nothing!
+            }
         }
 
         function openActions(id, type) {
             activeActionId = id; activeActionType = type;
             let title = "Options";
+            
+            document.getElementById('btnActionEdit').style.display = 'flex';
+            document.getElementById('btnActionDelete').style.display = 'flex';
+            document.getElementById('btnActionReset').style.display = 'none';
+            document.getElementById('btnActionSelect').style.display = 'none';
+
             if (type === 'section') title = sections.find(s => s.id === id).name;
             else if (type === 'deck') title = decks.find(d => d.id === id).name;
-            else if (type === 'card') title = "Card Options";
+            else if (type === 'tab') {
+                title = id === 'skipped' ? "Skipped Deck" : "Got It Deck";
+                document.getElementById('btnActionEdit').style.display = 'none';
+                document.getElementById('btnActionDelete').style.display = 'none';
+                document.getElementById('btnActionReset').style.display = 'flex';
+            }
+            else if (type === 'card') {
+                title = "Card Options";
+                document.getElementById('btnActionSelect').style.display = 'flex'; // Show select option
+            }
             
             document.getElementById('actionModalTitle').innerText = title;
             document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        // --- BULK SELECT & EDIT FUNCTIONS ---
+        window.triggerSelectMode = function() {
+            closeModal('actionModal');
+            enterSelectMode(activeActionId);
+        }
+        
+        function enterSelectMode(index) {
+            isSelectMode = true;
+            selectedCards.clear();
+            if (index !== null) selectedCards.add(index);
+            renderDeck();
+        }
+        
+        function exitSelectMode() {
+            isSelectMode = false;
+            selectedCards.clear();
+            renderDeck();
+        }
+        
+        function toggleCardSelection(id) {
+            if (selectedCards.has(id)) selectedCards.delete(id);
+            else selectedCards.add(id);
+            renderDeck();
+        }
+        
+        function selectAllCards() {
+            let activeArr = cards[currentDeckId] || [];
+            if (currentStudyCategory === 'skipped') activeArr = skippedCards[currentDeckId] || [];
+            if (currentStudyCategory === 'gotIt') activeArr = gotItCards[currentDeckId] || [];
+            
+            if (selectedCards.size === activeArr.length) {
+                selectedCards.clear(); // Deselect all if all are selected
+            } else {
+                activeArr.forEach((_, i) => selectedCards.add(i)); // Select all
+            }
+            renderDeck();
+        }
+        
+        function deleteSelectedCards() {
+            if (selectedCards.size === 0) return;
+            if (confirm(`⚠️ Delete ${selectedCards.size} selected cards?`)) {
+                let targetArr = cards;
+                if (currentStudyCategory === 'skipped') targetArr = skippedCards;
+                if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
+
+                // Remove selected indices
+                targetArr[currentDeckId] = targetArr[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                
+                saveData();
+                exitSelectMode();
+            }
+        }
+        
+        window.triggerReset = function() {
+            closeModal('actionModal');
+            const deckName = activeActionId === 'skipped' ? 'Skipped' : 'Got It';
+            if (confirm(`⚠️ Are you sure you want to empty the ${deckName} sub deck? All cards inside will be deleted.`)) {
+                if (activeActionId === 'skipped') skippedCards[currentDeckId] = [];
+                if (activeActionId === 'gotIt') gotItCards[currentDeckId] = [];
+                saveData();
+                renderDeck();
+            }
         }
 
         function triggerEdit() {
@@ -536,7 +661,10 @@
             } else if (activeActionType === 'card') {
                 editingCardIndex = activeActionId; 
                 
-                let targetArr = currentStudyCategory === 'main' ? cards : (currentStudyCategory === 'skipped' ? skippedCards : gotItCards);
+                let targetArr = cards;
+                if (currentStudyCategory === 'skipped') targetArr = skippedCards;
+                if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
+                
                 const card = targetArr[currentDeckId][editingCardIndex];
                 
                 document.getElementById('cardFront').value = card.front;
@@ -577,7 +705,10 @@
                 }
             } else if (activeActionType === 'card') {
                 if (confirm("⚠️ Delete this card?")) {
-                    let targetArr = currentStudyCategory === 'main' ? cards : (currentStudyCategory === 'skipped' ? skippedCards : gotItCards);
+                    let targetArr = cards;
+                    if (currentStudyCategory === 'skipped') targetArr = skippedCards;
+                    if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
+                    
                     targetArr[currentDeckId].splice(activeActionId, 1);
                     saveData(); renderDeck();
                 }
@@ -637,11 +768,12 @@
 
         window.goToDeck = function(id) { 
             currentDeckId = id; 
-            currentStudyCategory = 'main'; // default to main tab
+            currentStudyCategory = 'main'; 
             navigateTo('deckView'); 
         };
         
         window.switchDeckTab = function(category) {
+            exitSelectMode();
             currentStudyCategory = category;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('tab_' + category).classList.add('active');
@@ -676,7 +808,6 @@
         function renderDeck() {
             const deck = decks.find(d => d.id === currentDeckId);
             
-            // Update Tab Counts
             const mainArr = cards[currentDeckId] || [];
             const skipArr = skippedCards[currentDeckId] || [];
             const gotArr = gotItCards[currentDeckId] || [];
@@ -685,16 +816,28 @@
             document.getElementById('tab_skipped').innerText = `Skipped (${skipArr.length})`;
             document.getElementById('tab_gotIt').innerText = `Got It (${gotArr.length})`;
             
-            // Make sure UI highlights the right tab
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab_' + currentStudyCategory).classList.add('active');
-
             let activeArr = mainArr;
             if (currentStudyCategory === 'skipped') activeArr = skipArr;
             if (currentStudyCategory === 'gotIt') activeArr = gotArr;
             
             document.getElementById('currentDeckTitle').innerText = deck.name;
             document.getElementById('currentDeckCount').innerText = `${activeArr.length} cards in ${currentStudyCategory}`;
+            
+            // Toggle UI based on Select Mode
+            const studyGroup = document.getElementById('studyButtonGroup');
+            const selectBar = document.getElementById('selectBar');
+            const hintText = document.getElementById('deckHintText');
+            
+            if (isSelectMode) {
+                studyGroup.style.display = 'none';
+                selectBar.style.display = 'flex';
+                document.getElementById('selectCount').innerText = `${selectedCards.size} Selected`;
+                hintText.innerText = "Tap cards to select or deselect";
+            } else {
+                studyGroup.style.display = 'flex';
+                selectBar.style.display = 'none';
+                hintText.innerText = "Press & hold a card for 0.5s to edit or select";
+            }
             
             const list = document.getElementById('cardList');
             list.innerHTML = '';
@@ -703,17 +846,31 @@
 
             activeArr.forEach((card, index) => {
                 const li = document.createElement('li');
-                li.className = 'card-item';
+                const isSelected = selectedCards.has(index);
+                
+                li.className = 'card-item' + (isSelected ? ' selected' : '');
                 li.setAttribute('oncontextmenu', 'return false;');
                 
                 const enText = card.meaningEn || card.meaning || '-';
                 const idText = card.meaningId ? ` / ${card.meaningId}` : '';
 
+                // Select Mode visual adjustments
+                const checkDisplay = isSelectMode ? 'flex' : 'none';
+                const checkBg = isSelected ? 'var(--primary)' : 'transparent';
+                const checkBorder = isSelected ? 'var(--primary)' : 'var(--border)';
+                const svgIcon = isSelected ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>` : '';
+                const contentPadding = isSelectMode ? 'padding-left: 36px;' : '';
+
                 li.innerHTML = `
-                    <div class="card-item-kanji" style="font-weight: normal;">${card.front}</div>
-                    <hr>
-                    <div class="card-item-reading">${card.reading || '...'}</div>
-                    <div class="card-item-meaning">${enText}${idText}</div>
+                    <div class="card-checkbox" style="display: ${checkDisplay}; background: ${checkBg}; border-color: ${checkBorder};">
+                        ${svgIcon}
+                    </div>
+                    <div style="${contentPadding} transition: padding 0.2s;">
+                        <div class="card-item-kanji" style="font-weight: normal;">${card.front}</div>
+                        <hr>
+                        <div class="card-item-reading">${card.reading || '...'}</div>
+                        <div class="card-item-meaning">${enText}${idText}</div>
+                    </div>
                 `;
 
                 li.onmousedown = () => handleStartPress(index, 'card');
@@ -747,7 +904,6 @@
 
         function navigateToAddCard() {
             editingCardIndex = null;
-            // Force save to main deck if adding new
             currentStudyCategory = 'main'; 
             
             document.getElementById('addCardTitle').innerText = "Add Card";
@@ -810,13 +966,12 @@
         // --- STUDY SECTION (ALL MAIN DECKS) ---
         function startSectionStudy(initShuffle = false) {
             returnViewId = 'sectionView';
-            currentStudyCategory = 'main'; // Section study only studies main cards
+            currentStudyCategory = 'main'; 
             originalStudyOrder = [];
             
             const sectionDecks = decks.filter(d => d.sectionId === currentSectionId);
             sectionDecks.forEach(deck => {
                 if (cards[deck.id]) {
-                    // Need to tag the deckId so we know where to save skipped/gotIt
                     const taggedCards = cards[deck.id].map(c => ({...c, _deckId: deck.id}));
                     originalStudyOrder = originalStudyOrder.concat(taggedCards);
                 }
@@ -832,7 +987,6 @@
             if (isShuffled) studyCards = shuffleArray(studyCards);
             document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
-            // Hide remove button for main study
             document.getElementById('btnRemoveSub').style.display = 'none';
 
             showFurigana = false;
@@ -863,7 +1017,6 @@
             if (isShuffled) studyCards = shuffleArray(studyCards);
             document.getElementById('shuffleToggle').className = isShuffled ? 'tool-icon active' : 'tool-icon';
             
-            // Show/Hide Remove button based on category
             if (currentStudyCategory === 'main') {
                 document.getElementById('btnRemoveSub').style.display = 'none';
             } else {
@@ -908,7 +1061,6 @@
             
             document.getElementById('studyProgress').innerText = `Card ${currentStudyIndex + 1} of ${studyCards.length}`;
             
-            // Generate Ruby HTML for Front and Back Word
             const rubyHTML = generateRubyHTML(card.front, card.furigana);
             document.getElementById('studyFront').innerHTML = rubyHTML;
             document.getElementById('studyBackWord').innerHTML = rubyHTML;
@@ -921,15 +1073,13 @@
 
         function flipCard() { document.getElementById('studyCard').classList.toggle('is-flipped'); }
 
-        // Logic Rule 1 & 2
         function nextCard(result) {
             const currentCard = studyCards[currentStudyIndex];
-            // Resolve deckId (handles section study which spans multiple decks)
             const targetDeckId = currentCard._deckId || currentDeckId; 
 
             if (currentStudyCategory === 'main') {
                 const cleanCard = {...currentCard};
-                delete cleanCard._deckId; // Clean up tag before saving
+                delete cleanCard._deckId; 
 
                 if (result === 'skip') {
                     if (!skippedCards[targetDeckId]) skippedCards[targetDeckId] = [];
@@ -959,28 +1109,24 @@
             }, 300);
         }
 
-        // Logic Rule 3 (Remove from Sub Deck)
         window.removeAndMoveToGotIt = function() {
             const currentCard = studyCards[currentStudyIndex];
             
             if (!gotItCards[currentDeckId]) gotItCards[currentDeckId] = [];
 
             if (currentStudyCategory === 'skipped') {
-                // Delete from skipped
                 skippedCards[currentDeckId] = skippedCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
-                // Add to got it (if not exist)
                 if (!isCardInArray(currentCard, gotItCards[currentDeckId])) {
                     gotItCards[currentDeckId].push({...currentCard});
                 }
             } else if (currentStudyCategory === 'gotIt') {
-                // Already in got it, just delete it
                 gotItCards[currentDeckId] = gotItCards[currentDeckId].filter(c => !isCardEqual(c, currentCard));
             }
 
             saveData();
             
             document.getElementById('studyCard').classList.remove('is-flipped');
-            studyGotIt++; // Count as success since moving to got it
+            studyGotIt++; 
 
             setTimeout(() => {
                 currentStudyIndex++;
@@ -1056,7 +1202,7 @@
                 const rows = e.target.result.split('\n').filter(row => row.trim() !== '');
                 for (let i = 1; i < rows.length; i++) {
                     const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                    if (!cols || cols.length < 7) continue; // Category is 8th but optional
+                    if (!cols || cols.length < 7) continue;
 
                     const clean = (str) => str ? str.replace(/^"|"$/g, '').replace(/""/g, '"').trim() : '';
                     const secName = clean(cols[0]) || "Imported"; const deckName = clean(cols[1]) || "Imported Deck";
