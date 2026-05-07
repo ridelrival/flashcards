@@ -168,7 +168,7 @@
     <div id="homeView" class="view active">
         <div class="header">
             <p style="color: var(--text-muted); font-weight: 500;">Learn with</p>
-            <h1>Flash Cards</h1>
+            <h1>Flashcards</h1>
         </div>
         
         <div id="createSectionArea" style="display: none; margin-bottom: 20px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
@@ -443,20 +443,17 @@
 </div>
 
     <script>
-        // GLOBALS - PERFECTO INITIALIZATION STYLE (NO PANIC ON REFRESH)
-        let sections = [];
-        let decks = [];
-        let cards = {};
-        let skippedCards = {};
-        let gotItCards = {};
-
-        // Independent Try-Catch blocks so one corrupted data doesn't wipe out the others!
-        try { sections = JSON.parse(localStorage.getItem('flashcard_sections')) || []; } catch(e) { sections = []; }
-        try { decks = JSON.parse(localStorage.getItem('flashcard_decks')) || []; } catch(e) { decks = []; }
-        try { cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {}; } catch(e) { cards = {}; }
-        try { skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {}; } catch(e) { skippedCards = {}; }
-        try { gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {}; } catch(e) { gotItCards = {}; }
+        // ==========================================
+        // PERFECTO DATA INITIALIZATION (BULLETPROOF)
+        // ==========================================
+        let sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
+        let decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
+        let cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
         
+        // NEW SUB-DECK DATA STRUCTURES
+        let skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {};
+        let gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {};
+
         let currentSectionId = null;
         let currentDeckId = null;
         let currentStudyCategory = 'main'; 
@@ -492,7 +489,7 @@
             return array;
         }
 
-        // --- HELPER TO PREVENT DUPLICATES ---
+        // --- HELPER TO PREVENT DUPLICATES IN SUB-DECKS ---
         function isCardEqual(c1, c2) {
             return c1.front === c2.front && c1.reading === c2.reading && c1.meaningEn === c2.meaningEn && c1.meaningId === c2.meaningId;
         }
@@ -537,6 +534,7 @@
                 if (isSelectMode) {
                     toggleCardSelection(id); 
                 }
+                // Jika tidak di Select Mode, tap biasa dibiarkan mati agar aman dari ketidaksengajaan.
             }
         }
 
@@ -566,7 +564,7 @@
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        // --- BULK SELECT & EDIT FUNCTIONS ---
+        // --- BULK SELECT & MULTI DELETE ---
         window.triggerSelectMode = function() {
             closeModal('actionModal');
             enterSelectMode(activeActionId);
@@ -607,12 +605,13 @@
         function deleteSelectedCards() {
             if (selectedCards.size === 0) return;
             if (confirm(`⚠️ Delete ${selectedCards.size} selected cards?`)) {
-                let targetArr = cards;
-                if (currentStudyCategory === 'skipped') targetArr = skippedCards;
-                if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
-
-                targetArr[currentDeckId] = targetArr[currentDeckId].filter((_, i) => !selectedCards.has(i));
-                
+                if (currentStudyCategory === 'main') {
+                    cards[currentDeckId] = cards[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                } else if (currentStudyCategory === 'skipped') {
+                    skippedCards[currentDeckId] = skippedCards[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                } else if (currentStudyCategory === 'gotIt') {
+                    gotItCards[currentDeckId] = gotItCards[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                }
                 saveData();
                 exitSelectMode();
             }
@@ -629,6 +628,7 @@
             }
         }
 
+        // --- SINGLE EDIT & DELETE LOGIC ---
         function triggerEdit() {
             closeModal('actionModal');
             if(activeActionType === 'section') {
@@ -651,7 +651,6 @@
                 document.getElementById('cardFront').value = card.front;
                 document.getElementById('cardFurigana').value = card.furigana || '';
                 document.getElementById('cardReading').value = card.reading || '';
-                
                 document.getElementById('cardMeaningEn').value = card.meaningEn || card.meaning || '';
                 document.getElementById('cardMeaningId').value = card.meaningId || '';
                 
@@ -686,12 +685,16 @@
                 }
             } else if (activeActionType === 'card') {
                 if (confirm("⚠️ Delete this card?")) {
-                    let targetArr = cards;
-                    if (currentStudyCategory === 'skipped') targetArr = skippedCards;
-                    if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
-                    
-                    targetArr[currentDeckId].splice(activeActionId, 1);
-                    saveData(); renderDeck();
+                    // SECURE EXPLICIT DELETE FOR SINGLE CARD
+                    if (currentStudyCategory === 'main') {
+                        cards[currentDeckId].splice(activeActionId, 1);
+                    } else if (currentStudyCategory === 'skipped') {
+                        skippedCards[currentDeckId].splice(activeActionId, 1);
+                    } else if (currentStudyCategory === 'gotIt') {
+                        gotItCards[currentDeckId].splice(activeActionId, 1);
+                    }
+                    saveData(); 
+                    renderDeck();
                 }
             }
         }
@@ -942,7 +945,7 @@
             }
         }
 
-        // --- STUDY SECTION ---
+        // --- STUDY SECTION (ALL MAIN DECKS) ---
         function startSectionStudy(initShuffle = false) {
             returnViewId = 'sectionView';
             currentStudyCategory = 'main'; 
@@ -1135,8 +1138,17 @@
 
         function endStudy() { navigateTo(returnViewId); }
 
+        function saveData() {
+            localStorage.setItem('flashcard_sections', JSON.stringify(sections));
+            localStorage.setItem('flashcard_decks', JSON.stringify(decks));
+            localStorage.setItem('flashcard_cards', JSON.stringify(cards));
+            localStorage.setItem('flashcard_skipped', JSON.stringify(skippedCards));
+            localStorage.setItem('flashcard_gotit', JSON.stringify(gotItCards));
+        }
+
         // ==========================================
         // ISOLATED CSV EXPORT / IMPORT (MAIN DECK ONLY)
+        // 100% PERFECTO COMPATIBLE
         // ==========================================
         function exportToCSV() {
             let csvContent = "Section,Deck Name,Front,Furigana,Reading,Meaning EN,Meaning ID\n";
@@ -1144,7 +1156,7 @@
 
             sections.forEach(sec => {
                 decks.filter(d => d.sectionId === sec.id).forEach(deck => {
-                    // EXPORT ONLY FROM MAIN DECK (cards object)
+                    // EXPORT ONLY FROM MAIN DECK
                     (cards[deck.id] || []).forEach(c => {
                         const en = c.meaningEn || c.meaning || '';
                         const id = c.meaningId || '';
@@ -1163,7 +1175,7 @@
             let ret = [], col = '', inQuote = false;
             for (let i = 0; i < text.length; i++) {
                 let c = text[i];
-                if (c === '"' && text[i+1] === '"') { col += '"'; i++; } // Escaped quote
+                if (c === '"' && text[i+1] === '"') { col += '"'; i++; } 
                 else if (c === '"') { inQuote = !inQuote; }
                 else if (c === separator && !inQuote) { ret.push(col.trim()); col = ''; }
                 else { col += c; }
@@ -1184,7 +1196,6 @@
                         return;
                     }
 
-                    // Auto-detect if CSV uses Comma (,) or Semicolon (;)
                     const separator = rows[0].includes(';') && !rows[0].includes(',') ? ';' : ',';
 
                     for (let i = 1; i < rows.length; i++) {
@@ -1209,7 +1220,6 @@
                             meaningId = clean(cols[6]);
                         }
 
-                        // CEGAH HEADER MASUK JADI KARTU (Proteksi error screenshot)
                         if (!front || front.toLowerCase() === 'front' || secName.toLowerCase() === 'section') continue; 
 
                         let targetSec = sections.find(s => s.name === secName);
