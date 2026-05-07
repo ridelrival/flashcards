@@ -168,7 +168,7 @@
     <div id="homeView" class="view active">
         <div class="header">
             <p style="color: var(--text-muted); font-weight: 500;">Learn with</p>
-            <h1>Flash Cards</h1>
+            <h1>Flashcards</h1>
         </div>
         
         <div id="createSectionArea" style="display: none; margin-bottom: 20px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
@@ -437,23 +437,31 @@
 
     <script>
         // =========================================================================
-        // 1. PERFECTO INITIALIZATION (100% DIKEMBALIKAN KE VERSI PALING STABIL)
+        // 1. SISTEM PEMBACA MEMORI ANTI-BADAI (SAFE LOAD)
         // =========================================================================
-        let sections = JSON.parse(localStorage.getItem('flashcard_sections')) || [];
-        let decks = JSON.parse(localStorage.getItem('flashcard_decks')) || [];
-        let cards = JSON.parse(localStorage.getItem('flashcard_cards')) || {};
-        
-        // PENGAMANAN EKSTRA: Memastikan data berbentuk Array/Objek yang benar
-        if (!Array.isArray(sections)) sections = [];
-        if (!Array.isArray(decks)) decks = [];
-        if (typeof cards !== 'object' || Array.isArray(cards)) cards = {};
+        function safeLoad(key, fallback) {
+            try {
+                let data = localStorage.getItem(key);
+                if (data === null || data === undefined || data === 'undefined' || data === '') {
+                    return fallback;
+                }
+                let parsed = JSON.parse(data);
+                // Cek tipe data agar tidak tertukar antara array dan object
+                if (Array.isArray(fallback) && !Array.isArray(parsed)) return fallback;
+                if (!Array.isArray(fallback) && (typeof parsed !== 'object' || Array.isArray(parsed))) return fallback;
+                return parsed;
+            } catch (e) {
+                console.error("Error membaca " + key, e);
+                return fallback; // Jika error/korup, pakai data kosong agar tidak nge-blank
+            }
+        }
 
-        // Inisialisasi Sub Deck
-        let skippedCards = JSON.parse(localStorage.getItem('flashcard_skipped')) || {};
-        let gotItCards = JSON.parse(localStorage.getItem('flashcard_gotit')) || {};
+        let sections = safeLoad('flashcard_sections', []);
+        let decks = safeLoad('flashcard_decks', []);
+        let cards = safeLoad('flashcard_cards', {});
         
-        if (typeof skippedCards !== 'object' || Array.isArray(skippedCards)) skippedCards = {};
-        if (typeof gotItCards !== 'object' || Array.isArray(gotItCards)) gotItCards = {};
+        let skippedCards = safeLoad('flashcard_skipped', {});
+        let gotItCards = safeLoad('flashcard_gotit', {});
 
         // Variabel Navigasi & State
         let currentSectionId = null;
@@ -606,12 +614,13 @@
         function deleteSelectedCards() {
             if (selectedCards.size === 0) return;
             if (confirm(`⚠️ Delete ${selectedCards.size} selected cards?`)) {
-                let targetArr = cards;
-                if (currentStudyCategory === 'skipped') targetArr = skippedCards;
-                if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
-
-                targetArr[currentDeckId] = targetArr[currentDeckId].filter((_, i) => !selectedCards.has(i));
-                
+                if (currentStudyCategory === 'main') {
+                    cards[currentDeckId] = cards[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                } else if (currentStudyCategory === 'skipped') {
+                    skippedCards[currentDeckId] = skippedCards[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                } else if (currentStudyCategory === 'gotIt') {
+                    gotItCards[currentDeckId] = gotItCards[currentDeckId].filter((_, i) => !selectedCards.has(i));
+                }
                 saveData();
                 exitSelectMode();
             }
@@ -685,12 +694,15 @@
                 }
             } else if (activeActionType === 'card') {
                 if (confirm("⚠️ Delete this card?")) {
-                    let targetArr = cards;
-                    if (currentStudyCategory === 'skipped') targetArr = skippedCards;
-                    if (currentStudyCategory === 'gotIt') targetArr = gotItCards;
-                    
-                    targetArr[currentDeckId].splice(activeActionId, 1);
-                    saveData(); renderDeck();
+                    if (currentStudyCategory === 'main') {
+                        cards[currentDeckId].splice(activeActionId, 1);
+                    } else if (currentStudyCategory === 'skipped') {
+                        skippedCards[currentDeckId].splice(activeActionId, 1);
+                    } else if (currentStudyCategory === 'gotIt') {
+                        gotItCards[currentDeckId].splice(activeActionId, 1);
+                    }
+                    saveData(); 
+                    renderDeck();
                 }
             }
         }
@@ -1214,9 +1226,12 @@
         }
 
         // =========================================================================
-        // INITIALIZE APP
+        // JALANKAN APLIKASI SAAT LAYAR SIAP (MENCEGAH BLANK)
         // =========================================================================
-        renderHome();
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHome();
+        });
+
         if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
     </script>
 </body>
