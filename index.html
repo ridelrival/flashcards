@@ -1035,12 +1035,11 @@ function nextCard(action) {
         }
     } else {
         studyGotIt++;
-        if (currentStudyCategory === 'skipped') {
-            skippedCards[deckId] = (skippedCards[deckId] || []).filter(c => !isCardEqual(c, card));
-        }
-        if (!isCardInArray(card, gotItCards[deckId] || [])) {
-            if (!gotItCards[deckId]) gotItCards[deckId] = [];
-            gotItCards[deckId].push({...card});
+        if (currentStudyCategory !== 'skipped') {
+            if (!isCardInArray(card, gotItCards[deckId] || [])) {
+                if (!gotItCards[deckId]) gotItCards[deckId] = [];
+                gotItCards[deckId].push({...card});
+            }
         }
     }
     saveState();
@@ -1084,7 +1083,17 @@ function toggleFurigana() {
     showFurigana = !showFurigana;
     document.getElementById('furiganaToggle').className = showFurigana ? 'tool-icon active' : 'tool-icon';
     document.getElementById('studyCard').classList.toggle('show-furigana', showFurigana);
-    loadStudyCard();
+    
+    const frontEl = document.getElementById('studyFront');
+    const backWordEl = document.getElementById('studyBackWord');
+    
+    if (showFurigana) {
+        frontEl.classList.add('show-furigana');
+        backWordEl.classList.add('show-furigana');
+    } else {
+        frontEl.classList.remove('show-furigana');
+        backWordEl.classList.remove('show-furigana');
+    }
 }
 
 function showResults() {
